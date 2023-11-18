@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Windows.Forms;
@@ -31,26 +31,37 @@ public class WebGraph
         web = new HtmlWeb();
     }
 
-    public void BuildGraph(string rootUrl)
+    public void BuildGraph(string rootUrl, int depth)
     {
         RootNode = new WebNode(rootUrl);
-        FetchLinks(RootNode);
+        FetchLinks(RootNode, depth);
     }
 
-    private void FetchLinks(WebNode node)
+    private void FetchLinks(WebNode node, int depth)
     {
+        if (depth <= 0 || node == null)
+        {
+            return; // Stop recursion when depth limit is reached or node is null.
+        }
+
         try
         {
             var doc = web.Load(node.Url);
-            foreach (var link in doc.DocumentNode.SelectNodes("//a[@href]"))
+            var links = doc.DocumentNode.SelectNodes("//a[@href]");
+
+            if (links != null)
             {
-                var hrefValue = link.GetAttributeValue("href", string.Empty);
-                if (!string.IsNullOrEmpty(hrefValue) && hrefValue.StartsWith("http"))
+                foreach (var link in links)
                 {
-                    var newNode = new WebNode(hrefValue);
-                    node.LinkedNodes.Add(newNode);
-                    // uncomment below line to recursively fetch links (can lead to large number of requests)
-                    // FetchLinks(newNode); 
+                    var hrefValue = link.GetAttributeValue("href", string.Empty);
+                    if (!string.IsNullOrEmpty(hrefValue) && hrefValue.StartsWith("http"))
+                    {
+                        var newNode = new WebNode(hrefValue);
+                        node.LinkedNodes.Add(newNode);
+
+                        // Recursive call with decremented depth
+                        FetchLinks(newNode, depth - 1);
+                    }
                 }
             }
         }
@@ -59,6 +70,7 @@ public class WebGraph
             Console.WriteLine("Error fetching links from: " + node.Url + "\n" + ex.Message);
         }
     }
+
 
     public Graph Visualize()
     {
@@ -177,7 +189,8 @@ class Program
     static void Main(string[] args)
     {
         WebGraph webGraph = new WebGraph();
-        webGraph.BuildGraph("https://youtube.com"); // this is the URL we can set as our initial input
+        int maxDepth = 3; // Set your desired depth limit here
+        webGraph.BuildGraph("https://youtube.com", maxDepth); // this is the URL we can set as our initial input
 
         // graph code to visualize
         Graph graph = webGraph.Visualize();
