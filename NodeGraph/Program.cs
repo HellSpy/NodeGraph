@@ -30,7 +30,6 @@ public class WebGraph
     {
         web = new HtmlWeb();
     }
-
     public void BuildGraph(string rootUrl)
     {
         RootNode = new WebNode(rootUrl);
@@ -65,7 +64,9 @@ public class WebGraph
         var graph = new Graph("webgraph");
 
         // adjust layout settings as needed
-        graph.LayoutAlgorithmSettings.NodeSeparation = 50;
+        graph.Attr.LayerDirection = LayerDirection.LR; // From left to right
+        graph.LayoutAlgorithmSettings.NodeSeparation = 70;
+        graph.LayoutAlgorithmSettings.EdgeRoutingSettings.EdgeRoutingMode = Microsoft.Msagl.Core.Routing.EdgeRoutingMode.SplineBundling;
 
         AddNodeToGraph(RootNode, graph, new HashSet<string>());
 
@@ -75,23 +76,43 @@ public class WebGraph
         return graph;
     }
 
-    private void AddNodeToGraph(WebNode node, Graph graph, HashSet<string> visited)
+    private void AddNodeToGraph(WebNode node, Graph graph, HashSet<string> visited) //WARNING, RECURSION HAS BEEN OMITTED FROM THIS FUNCTION
     {
         if (visited.Contains(node.Url)) return;
 
         visited.Add(node.Url);
         var msaglNode = graph.AddNode(node.Url);
-        msaglNode.Attr.Shape = Shape.Circle;
 
+        // Customize the nodes based on domain
+        Uri uri = new Uri(node.Url);
+        if (uri.Host.Contains("youtube.com"))
+        {
+            msaglNode.Attr.FillColor = Color.Red;
+            msaglNode.Attr.Shape = Shape.Diamond;
+        }
+        else
+        {
+            msaglNode.Attr.FillColor = Color.LightBlue;
+            msaglNode.Attr.Shape = Shape.Box;
+        }
 
+        // Set node label with the shortened URL or title
+        msaglNode.LabelText = uri.Host;
+
+        // Iterate over linked nodes
         foreach (var linkedNode in node.LinkedNodes)
         {
             if (!visited.Contains(linkedNode.Url))
             {
                 var linkedMsaglNode = graph.AddNode(linkedNode.Url);
+                linkedMsaglNode.Attr.FillColor = Color.LightGray; // Default color for linked nodes
                 linkedMsaglNode.Attr.Shape = Shape.Circle;
+                linkedMsaglNode.LabelText = new Uri(linkedNode.Url).Host; // Shortened label for linked nodes
 
-                graph.AddEdge(node.Url, linkedNode.Url);
+                // Create a directed edge
+                var edge = graph.AddEdge(node.Url, linkedNode.Url);
+                edge.Attr.Color = Color.Black;
+                edge.Attr.ArrowheadAtTarget = ArrowStyle.Normal;
             }
         }
     }
