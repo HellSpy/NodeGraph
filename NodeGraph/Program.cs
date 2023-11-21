@@ -211,7 +211,7 @@ class Program
     static void Main(string[] args)
     {
         WebGraph webGraph = new WebGraph();
-        webGraph.BuildGraph("https://pornhub.com");
+        webGraph.BuildGraph("https://youtube.com");
 
         Graph graph = webGraph.Visualize();
 
