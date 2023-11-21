@@ -1,7 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Net.Http;
-using System.Windows.Forms; // this fucking library sucks dog water
+using System.Windows.Forms;
 using System.Linq;
 using System.Resources.Extensions;
 using HtmlAgilityPack; // We will use  the HtmlAgilityPack library as it contains the crawler we need to extract HTML elements
@@ -118,7 +118,7 @@ public class WebGraph
     }
     private void ApplyClustering(Graph graph)
     {
-        // Basic clustering logic... (MOSTLY INCOMPLETE)
+        // Basic clustering logic...
         var clusters = new Dictionary<string, Subgraph>();
 
         foreach (var node in graph.Nodes)
@@ -211,7 +211,7 @@ class Program
     static void Main(string[] args)
     {
         WebGraph webGraph = new WebGraph();
-        webGraph.BuildGraph("https://pornhub.com");
+        webGraph.BuildGraph("https://youtube.com");
 
         Graph graph = webGraph.Visualize();
 
