@@ -15,13 +15,15 @@ public class WebGraph
     {
         web = new HtmlWeb();
     }
+
     public void BuildGraph(string rootUrl)
     {
         RootNode = new WebNode(rootUrl);
-        FetchLinks(RootNode);
+        var visitedDomains = new HashSet<string>();
+        FetchLinks(RootNode, visitedDomains);
     }
 
-    public void FetchLinks(WebNode node)
+    public void FetchLinks(WebNode node, HashSet<string> visitedDomains)
     {
         try
         {
@@ -31,12 +33,17 @@ public class WebGraph
                 var hrefValue = link.GetAttributeValue("href", string.Empty);
                 if (!string.IsNullOrEmpty(hrefValue) && hrefValue.StartsWith("http"))
                 {
-                    if (!node.LinkedNodes.Any(n => n.Url == hrefValue)) // Check if the link is already added
+                    var domain = new Uri(hrefValue).Host;
+                    if (!visitedDomains.Contains(domain)) // Check if the domain is not visited
                     {
-                        var newNode = new WebNode(hrefValue);
-                        node.LinkedNodes.Add(newNode);
-                        // uncomment below line to recursively fetch links (can lead to large number of requests)
-                        // FetchLinks(newNode); 
+                        visitedDomains.Add(domain); // Add domain to the visited list
+
+                        if (!node.LinkedNodes.Any(n => n.Url == hrefValue)) // Check if the link is already added
+                        {
+                            var newNode = new WebNode(hrefValue);
+                            node.LinkedNodes.Add(newNode);
+                            // FetchLinks(newNode, visitedDomains); // Uncomment for recursive fetching
+                        }
                     }
                 }
             }
@@ -70,11 +77,11 @@ public class WebGraph
         return graph;
     }
 
-    private void AddNodeToGraph(WebNode node, Graph graph, HashSet<string> visited) //WARNING, RECURSION HAS BEEN OMITTED FROM THIS FUNCTION
+    private void AddNodeToGraph(WebNode node, Graph graph, HashSet<string> visitedDomains)
     {
-        if (visited.Contains(node.Url)) return;
+        if (visitedDomains.Contains(node.Url)) return;
 
-        visited.Add(node.Url);
+        visitedDomains.Add(node.Url);
         var msaglNode = graph.AddNode(node.Url);
 
         // Customize the nodes based on domain
@@ -96,7 +103,7 @@ public class WebGraph
         // Iterate over linked nodes
         foreach (var linkedNode in node.LinkedNodes)
         {
-            if (!visited.Contains(linkedNode.Url))
+            if (!visitedDomains.Contains(linkedNode.Url))
             {
                 var linkedMsaglNode = graph.AddNode(linkedNode.Url);
                 linkedMsaglNode.Attr.FillColor = Color.LightGray; // Default color for linked nodes
