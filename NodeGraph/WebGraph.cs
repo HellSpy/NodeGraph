@@ -1,7 +1,9 @@
 ﻿using HtmlAgilityPack;
 using Microsoft.Msagl.Drawing;
 using System.Collections.Generic;
+using System.Linq;
 using System;
+using Microsoft.Msagl.Layout.Layered;
 
 public class WebGraph
 {
@@ -28,10 +30,13 @@ public class WebGraph
                 var hrefValue = link.GetAttributeValue("href", string.Empty);
                 if (!string.IsNullOrEmpty(hrefValue) && hrefValue.StartsWith("http"))
                 {
-                    var newNode = new WebNode(hrefValue);
-                    node.LinkedNodes.Add(newNode);
-                    // uncomment below line to recursively fetch links (can lead to large number of requests)
-                    // FetchLinks(newNode); 
+                    if (!node.LinkedNodes.Any(n => n.Url == hrefValue)) // Check if the link is already added
+                    {
+                        var newNode = new WebNode(hrefValue);
+                        node.LinkedNodes.Add(newNode);
+                        // uncomment below line to recursively fetch links (can lead to large number of requests)
+                        // FetchLinks(newNode); 
+                    }
                 }
             }
         }
