@@ -30,7 +30,7 @@ public class FormVisualizer : Form
         }
 
         viewer.MouseMove += Viewer_MouseMove;
-        viewer.MouseClick += Viewer_MouseClick; // Ensure this is MouseClick
+        viewer.MouseDoubleClick += Viewer_MouseDoubleClick; // Changed to MouseDoubleClick so that you can double click duh
         Controls.Add(viewer);
     }
 
@@ -59,7 +59,7 @@ public class FormVisualizer : Form
         }
     }
 
-    private void Viewer_MouseClick(object sender, MouseEventArgs e)
+    private void Viewer_MouseDoubleClick(object sender, MouseEventArgs e)
     {
         // Get the object at the mouse click position
         var clickedObject = viewer.GetObjectAt(e.X, e.Y);
