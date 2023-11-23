@@ -3,6 +3,7 @@ using Microsoft.Msagl.GraphViewerGdi;
 using System.Collections.Generic;
 using System.Windows.Forms;
 using System;
+using Microsoft.Msagl.Layout.MDS;
 
 public class FormVisualizer : Form
 {
@@ -17,7 +18,7 @@ public class FormVisualizer : Form
 
         viewer = new GViewer
         {
-            Graph = graph,
+            Graph = graph, // should still work fine with MDS layout settings...
             Dock = DockStyle.Fill
         };
 
@@ -85,14 +86,15 @@ public class FormVisualizer : Form
     // i gave up so we will rebuild the entire graph with each update, which is going to cost more resources
     private void UpdateGraph(WebNode node)
     {
+        // add new nodes and edges to the existing graph
         foreach (var linkedNode in node.LinkedNodes)
         {
             if (!viewer.Graph.NodeMap.ContainsKey(linkedNode.Url))
             {
                 var linkedMsaglNode = viewer.Graph.AddNode(linkedNode.Url);
-                linkedMsaglNode.Attr.FillColor = Color.LightGray; // Default color for linked nodes
+                linkedMsaglNode.Attr.FillColor = Color.LightGray; // default color for linked nodes
                 linkedMsaglNode.Attr.Shape = Shape.Circle;
-                linkedMsaglNode.LabelText = ShortenUrl(linkedNode.Url); // Shortened label for linked nodes
+                linkedMsaglNode.LabelText = ShortenUrl(linkedNode.Url); // shortened label for linked nodes
 
                 // Create a directed edge
                 var edge = viewer.Graph.AddEdge(node.Url, linkedNode.Url);
@@ -101,7 +103,7 @@ public class FormVisualizer : Form
             }
         }
 
-        // Rebuild the entire graph with new nodes and edges
+        // creating a new graph instance to apply the MDS layout
         var newGraph = new Graph();
         foreach (var n in viewer.Graph.Nodes)
         {
@@ -116,8 +118,15 @@ public class FormVisualizer : Form
             newEdge.Attr.Color = e.Attr.Color;
             newEdge.Attr.ArrowheadAtTarget = e.Attr.ArrowheadAtTarget;
         }
-        viewer.Graph = newGraph; // Assign the new graph to the viewer
 
+        // apply MDS layout settings to the new graph
+        var mdsLayout = new MdsLayoutSettings();
+        // adjust MDS layout settings here if needed
+        newGraph.LayoutAlgorithmSettings = mdsLayout;
+
+        // assign the new graph to the viewer and refresh the layout
+        viewer.Graph = newGraph;
+        viewer.NeedToCalculateLayout = true;
         viewer.Invalidate();
         viewer.Refresh();
     }

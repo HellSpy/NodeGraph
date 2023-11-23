@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System;
 using Microsoft.Msagl.Layout.Layered;
+using Microsoft.Msagl.Layout.MDS;
 
 public class WebGraph
 {
@@ -50,15 +51,21 @@ public class WebGraph
     {
         var graph = new Graph("webgraph");
 
-        // adjust layout settings as needed
-        graph.Attr.LayerDirection = LayerDirection.LR; // From left to right
-        graph.LayoutAlgorithmSettings.NodeSeparation = 70;
-        graph.LayoutAlgorithmSettings.EdgeRoutingSettings.EdgeRoutingMode = Microsoft.Msagl.Core.Routing.EdgeRoutingMode.SplineBundling;
+        // use MDS layout settings
+        var mdsLayout = new MdsLayoutSettings();
+
+        // You can adjust MDS layout settings here
+        // For example:
+        // mdsLayout.IterationLimit = 100;
+
+        graph.LayoutAlgorithmSettings = mdsLayout;
 
         AddNodeToGraph(RootNode, graph, new HashSet<string>());
 
-        // optional: you can apply clustering here based on whatever criteria we make up
+        // Apply clustering if needed
         ApplyClustering(graph);
+
+        // here you can handle additional layout adjustments or post-processing, feel free to add any other optional stuff
 
         return graph;
     }
