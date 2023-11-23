@@ -11,10 +11,12 @@ public class FormVisualizer : Form
     private ToolTip tooltip;
     private Dictionary<string, string> nodeUrlMap;
     private WebGraph webGraph;
+    private HashSet<string> visitedDomains; // Added to track visited domains
 
     public FormVisualizer(Graph graph, WebGraph webGraph)
     {
         this.webGraph = webGraph;
+        visitedDomains = new HashSet<string>(); // Initialize the visited domains HashSet
 
         viewer = new GViewer
         {
@@ -69,7 +71,7 @@ public class FormVisualizer : Form
             Console.WriteLine("Node clicked: " + dnode.Node.Id);
 
             var node = new WebNode(dnode.Node.Id);
-            webGraph.FetchLinks(node);
+            webGraph.FetchLinks(node, visitedDomains);
 
             Console.WriteLine("Fetched links for: " + dnode.Node.Id);
 
