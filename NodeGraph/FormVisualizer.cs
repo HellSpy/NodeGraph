@@ -93,10 +93,8 @@ public class FormVisualizer : Form
         {
             if (!viewer.Graph.NodeMap.ContainsKey(linkedNode.Url))
             {
-                var linkedMsaglNode = viewer.Graph.AddNode(linkedNode.Url);
-                linkedMsaglNode.Attr.FillColor = Color.LightGray; // default color for linked nodes
-                linkedMsaglNode.Attr.Shape = Shape.Circle;
-                linkedMsaglNode.LabelText = ShortenUrl(linkedNode.Url); // shortened label for linked nodes
+                // Use StyleNode for styling linked nodes
+                WebGraph.StyleNode(linkedNode.Url, viewer.Graph);
 
                 // Create a directed edge
                 var edge = viewer.Graph.AddEdge(node.Url, linkedNode.Url);
@@ -105,14 +103,11 @@ public class FormVisualizer : Form
             }
         }
 
-        // creating a new graph instance to apply the MDS layout
+        // Copying nodes and edges to a new graph instance with applied MDS layout
         var newGraph = new Graph();
         foreach (var n in viewer.Graph.Nodes)
         {
-            var newNode = newGraph.AddNode(n.Id);
-            newNode.Attr.FillColor = n.Attr.FillColor;
-            newNode.Attr.Shape = n.Attr.Shape;
-            newNode.LabelText = n.LabelText;
+            var newNode = WebGraph.StyleNode(n.Id, newGraph); // Apply styling while copying nodes
         }
         foreach (var e in viewer.Graph.Edges)
         {
@@ -121,12 +116,11 @@ public class FormVisualizer : Form
             newEdge.Attr.ArrowheadAtTarget = e.Attr.ArrowheadAtTarget;
         }
 
-        // apply MDS layout settings to the new graph
+        // Apply MDS layout settings
         var mdsLayout = new MdsLayoutSettings();
-        // adjust MDS layout settings here if needed
         newGraph.LayoutAlgorithmSettings = mdsLayout;
 
-        // assign the new graph to the viewer and refresh the layout
+        // Update the viewer with the new graph
         viewer.Graph = newGraph;
         viewer.NeedToCalculateLayout = true;
         viewer.Invalidate();

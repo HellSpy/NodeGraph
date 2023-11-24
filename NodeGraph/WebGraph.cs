@@ -77,46 +77,62 @@ public class WebGraph
         return graph;
     }
 
-    private void AddNodeToGraph(WebNode node, Graph graph, HashSet<string> visitedDomains)
+    private void AddNodeToGraph(WebNode node, Graph graph, HashSet<string> visitedDomains) // simplified this function
     {
+        // check if the node's URL is already processed to avoid duplicate processing
         if (visitedDomains.Contains(node.Url)) return;
 
+        // mark the current node's URL as visited
         visitedDomains.Add(node.Url);
-        var msaglNode = graph.AddNode(node.Url);
 
-        // Customize the nodes based on domain
-        Uri uri = new Uri(node.Url);
-        if (uri.Host.Contains("youtube.com"))
-        {
-            msaglNode.Attr.FillColor = Color.Red;
-            msaglNode.Attr.Shape = Shape.Diamond;
-        }
-        else
-        {
-            msaglNode.Attr.FillColor = Color.LightBlue;
-            msaglNode.Attr.Shape = Shape.Box;
-        }
+        // apply styling to the current node and add it to the graph
+        var msaglNode = StyleNode(node.Url, graph);
 
-        // Set node label with the shortened URL or title
-        msaglNode.LabelText = uri.Host;
-
-        // Iterate over linked nodes
+        // iterate over each linked node of the current node
         foreach (var linkedNode in node.LinkedNodes)
         {
+            // check if the linked node is not already visited
             if (!visitedDomains.Contains(linkedNode.Url))
             {
-                var linkedMsaglNode = graph.AddNode(linkedNode.Url);
-                linkedMsaglNode.Attr.FillColor = Color.LightGray; // Default color for linked nodes
-                linkedMsaglNode.Attr.Shape = Shape.Circle;
-                linkedMsaglNode.LabelText = new Uri(linkedNode.Url).Host; // Shortened label for linked nodes
+                // apply styling to the linked node and add it to the graph
+                StyleNode(linkedNode.Url, graph);
 
-                // Create a directed edge
+                // create a directed edge from the current node to the linked node
                 var edge = graph.AddEdge(node.Url, linkedNode.Url);
-                edge.Attr.Color = Color.Black;
-                edge.Attr.ArrowheadAtTarget = ArrowStyle.Normal;
+
+                // customize the appearance of the edge
+                edge.Attr.Color = Color.Black; // Set the color of the edge
+                edge.Attr.ArrowheadAtTarget = ArrowStyle.Normal; // Set the style of the arrowhead
             }
         }
     }
+
+    // added a new function for styling the initial linked nodes
+    public static Node StyleNode(string url, Graph graph) // set to public static so that it can be accessed by other files
+    {
+        var msaglNode = graph.AddNode(url);
+        Uri uri = new Uri(url);
+
+        // Check for an exact match in the list of top domains against the full URL
+        if (TopDomains.Domains.Any(d => string.Equals(d, uri.Host, StringComparison.OrdinalIgnoreCase)))
+        {
+            // Special styling for popular domains
+            msaglNode.Attr.FillColor = Color.Red;
+            msaglNode.Label.FontSize = 8; // larger font size for popular domains
+            msaglNode.Attr.Shape = Shape.Circle;
+        }
+        else
+        {
+            // Default styling for other domains
+            msaglNode.Attr.FillColor = Color.LightGray;
+            msaglNode.Attr.Shape = Shape.Circle;
+            msaglNode.Label.FontSize = 8;
+        }
+
+        msaglNode.LabelText = uri.Host; // shortened label
+        return msaglNode;
+    }
+
     private void ApplyClustering(Graph graph)
     {
         // Basic clustering logic... (MOSTLY INCOMPLETE)
