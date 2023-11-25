@@ -59,64 +59,94 @@ public class WebGraph
         var graph = new Graph("webgraph");
 
         // use MDS layout settings
-        var mdsLayout = new MdsLayoutSettings();
-
-        // You can adjust MDS layout settings here
-        // For example:
-        // mdsLayout.IterationLimit = 100;
+        var mdsLayout = new MdsLayoutSettings
+        {
+            // RemoveOverlaps = true, // Enable overlap removal
+            // ScaleX = 1.0, // Set X scaling
+            // ScaleY = 1.0, // Set Y scaling
+            // PackingAspectRatio = 1.0, // Set packing aspect ratio
+            // PivotNumber = 50 // Set the number of pivots
+        };
 
         graph.LayoutAlgorithmSettings = mdsLayout;
 
         AddNodeToGraph(RootNode, graph, new HashSet<string>());
 
-        // Apply clustering if needed
         ApplyClustering(graph);
-
-        // here you can handle additional layout adjustments or post-processing, feel free to add any other optional stuff
 
         return graph;
     }
 
-    private void AddNodeToGraph(WebNode node, Graph graph, HashSet<string> visitedDomains)
+    private void AddNodeToGraph(WebNode node, Graph graph, HashSet<string> visitedDomains) // simplified this function
     {
+        // check if the node's URL is already processed to avoid duplicate processing
         if (visitedDomains.Contains(node.Url)) return;
 
+        // mark the current node's URL as visited
         visitedDomains.Add(node.Url);
-        var msaglNode = graph.AddNode(node.Url);
 
-        // Customize the nodes based on domain
-        Uri uri = new Uri(node.Url);
-        if (uri.Host.Contains("youtube.com"))
-        {
-            msaglNode.Attr.FillColor = Color.Red;
-            msaglNode.Attr.Shape = Shape.Diamond;
-        }
-        else
-        {
-            msaglNode.Attr.FillColor = Color.LightBlue;
-            msaglNode.Attr.Shape = Shape.Box;
-        }
+        // apply styling to the current node and add it to the graph
+        var msaglNode = StyleNode(node.Url, graph);
 
-        // Set node label with the shortened URL or title
-        msaglNode.LabelText = uri.Host;
-
-        // Iterate over linked nodes
+        // iterate over each linked node of the current node
         foreach (var linkedNode in node.LinkedNodes)
         {
+            // check if the linked node is not already visited
             if (!visitedDomains.Contains(linkedNode.Url))
             {
-                var linkedMsaglNode = graph.AddNode(linkedNode.Url);
-                linkedMsaglNode.Attr.FillColor = Color.LightGray; // Default color for linked nodes
-                linkedMsaglNode.Attr.Shape = Shape.Circle;
-                linkedMsaglNode.LabelText = new Uri(linkedNode.Url).Host; // Shortened label for linked nodes
+                // apply styling to the linked node and add it to the graph
+                StyleNode(linkedNode.Url, graph);
 
-                // Create a directed edge
+                // create a directed edge from the current node to the linked node
                 var edge = graph.AddEdge(node.Url, linkedNode.Url);
-                edge.Attr.Color = Color.Black;
-                edge.Attr.ArrowheadAtTarget = ArrowStyle.Normal;
+
+                // customize the appearance of the edge
+                edge.Attr.Color = Color.Black; // Set the color of the edge
+                edge.Attr.ArrowheadAtTarget = ArrowStyle.Normal; // Set the style of the arrowhead
             }
         }
     }
+
+    // added a new function for styling the initial linked nodes
+    public static Node StyleNode(string url, Graph graph) // set to public static so that it can be accessed by other files
+    {
+        var msaglNode = graph.AddNode(url);
+        Uri uri = new Uri(url);
+
+        string domain = uri.Host.ToLower(); // Extract the domain from the URL and convert it to lower case for case-insensitive comparison
+
+        // check for an exact & partial match in the list of top domains
+        if (TopDomains.Domains.Any(d => string.Equals(d, domain, StringComparison.OrdinalIgnoreCase)))
+        {
+            // Special styling for popular domains
+            msaglNode.Attr.FillColor = Color.Moccasin;
+            msaglNode.Label.FontSize = 35; // Larger font size for popular domains
+            msaglNode.Attr.Shape = Shape.Circle;
+        }
+        else
+        {
+            // Default styling for other domains
+            msaglNode.Attr.FillColor = Color.AliceBlue;
+            msaglNode.Attr.Shape = Shape.Circle;
+            msaglNode.Label.FontSize = 8;
+        }
+
+        /*  // Uncomment this entire code if you want to display domains and their first part (for example, youtube.com/about instead of youtube.com)
+            // Set the label text to include the domain and the first segment of the path, if any
+            string label = uri.Host;
+            var pathSegments = uri.AbsolutePath.Split(new char[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+            if (pathSegments.Length > 0)
+            {
+                label += "/" + pathSegments[0];
+            }
+            msaglNode.LabelText = label;
+            return msaglNode;
+        */
+
+        msaglNode.LabelText = uri.Host; // Shortened label
+        return msaglNode;
+    }
+
     private void ApplyClustering(Graph graph)
     {
         // Basic clustering logic... (MOSTLY INCOMPLETE)
