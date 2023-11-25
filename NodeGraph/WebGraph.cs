@@ -28,21 +28,27 @@ public class WebGraph
         try
         {
             var doc = web.Load(node.Url);
-            foreach (var link in doc.DocumentNode.SelectNodes("//a[@href]"))
-            {
-                var hrefValue = link.GetAttributeValue("href", string.Empty);
-                if (!string.IsNullOrEmpty(hrefValue) && hrefValue.StartsWith("http"))
-                {
-                    var domain = new Uri(hrefValue).Host;
-                    if (!visitedDomains.Contains(domain)) // Check if the domain is not visited
-                    {
-                        visitedDomains.Add(domain); // Add domain to the visited list
 
-                        if (!node.LinkedNodes.Any(n => n.Url == hrefValue)) // Check if the link is already added
+            // Adding a null check for the SelectNodes result
+            var links = doc.DocumentNode.SelectNodes("//a[@href]");
+            if (links != null)
+            {
+                foreach (var link in links)
+                {
+                    var hrefValue = link.GetAttributeValue("href", string.Empty);
+                    if (!string.IsNullOrEmpty(hrefValue) && hrefValue.StartsWith("http"))
+                    {
+                        var domain = new Uri(hrefValue).Host;
+                        if (!visitedDomains.Contains(domain))
                         {
-                            var newNode = new WebNode(hrefValue);
-                            node.LinkedNodes.Add(newNode);
-                            // FetchLinks(newNode, visitedDomains); // Uncomment for recursive fetching
+                            visitedDomains.Add(domain);
+
+                            if (!node.LinkedNodes.Any(n => n.Url == hrefValue))
+                            {
+                                var newNode = new WebNode(hrefValue);
+                                node.LinkedNodes.Add(newNode);
+                                // FetchLinks(newNode, visitedDomains); // Uncomment for recursive fetching
+                            }
                         }
                     }
                 }
@@ -53,6 +59,7 @@ public class WebGraph
             Console.WriteLine("Error fetching links from: " + node.Url + "\n" + ex.Message);
         }
     }
+
 
     public Graph Visualize()
     {
