@@ -1,9 +1,11 @@
 ﻿using Microsoft.Msagl.Drawing;
 using Microsoft.Msagl.GraphViewerGdi;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Windows.Forms;
 using System;
 using Microsoft.Msagl.Layout.MDS;
+using System.Diagnostics;
 using System.Drawing; // added this
 
 public class FormVisualizer : Form
@@ -14,15 +16,29 @@ public class FormVisualizer : Form
     private WebGraph webGraph;
     private HashSet<string> visitedDomains; // Added to track visited domains
 
+    private Stopwatch stopwatch = new Stopwatch(); // for performance measurement
+
+    // yeah this looks like shit cause theres a duplicate color class cause of the OutsideAreaBrush implementation im sorry
+    // im gonna revise this at some point anyway and move a lot of the code from here to WebGraph eventually
+    public Microsoft.Msagl.Drawing.Color defaultNodeColor = Microsoft.Msagl.Drawing.Color.LightGray;
+    public Microsoft.Msagl.Drawing.Color defaultEdgeColor = Microsoft.Msagl.Drawing.Color.Black;
+
     public FormVisualizer(Graph graph, WebGraph webGraph)
     {
+        this.Text = "NodeGraph -- Double click on any node to begin"; // sets the title of the form
+        this.Icon = NodeGraph.Properties.Resources.icon; // ok i was gonna put this in the InitializeComponent function but it didnt work >_< thats why its up here
+
+        this.WindowState = FormWindowState.Maximized; // starts the program in maximized view
+
         this.webGraph = webGraph;
+
         visitedDomains = new HashSet<string>(); // Initialize the visited domains HashSet
 
         viewer = new GViewer
         {
             Graph = graph, // should still work fine with MDS layout settings...
-            Dock = DockStyle.Fill
+            Dock = DockStyle.Fill,
+            OutsideAreaBrush = Brushes.White // by defualt, the window has a bunch of grey space which looks ugly so i set it to 
         };
 
         customTooltip = new CustomTooltipForm();
@@ -75,6 +91,9 @@ public class FormVisualizer : Form
         {
             Console.WriteLine("Node clicked: " + dnode.Node.Id);
 
+            stopwatch.Reset(); // resets the stopwatch & removes the previous value (in case it's not zero)
+            stopwatch.Start(); // begins the stopwatch so we can see how long it takes to generate the graph
+
             var node = new WebNode(dnode.Node.Id);
             webGraph.FetchLinks(node, visitedDomains);
 
@@ -93,17 +112,13 @@ public class FormVisualizer : Form
     // i gave up so we will rebuild the entire graph with each update, which is going to cost more resources
     private void UpdateGraph(WebNode node)
     {
+        Console.WriteLine("Generating graph...");
+
         // add new nodes and edges to the existing graph
         foreach (var linkedNode in node.LinkedNodes)
         {
             if (!viewer.Graph.NodeMap.ContainsKey(linkedNode.Url))
             {
-                // Use StyleNode for styling linked nodes
-                WebGraph.StyleNode(linkedNode.Url, viewer.Graph);
-
-                // Create a directed edge
-                var edge = viewer.Graph.AddEdge(node.Url, linkedNode.Url);
-                edge.Attr.Color = Microsoft.Msagl.Drawing.Color.Black;
                 edge.Attr.ArrowheadAtTarget = ArrowStyle.Normal;
 
                 // Add nodes to the nodeUrlMap so that that tooltip function can work
@@ -118,6 +133,13 @@ public class FormVisualizer : Form
         var newGraph = new Graph();
         foreach (var n in viewer.Graph.Nodes)
         {
+            var newNode = newGraph.AddNode(n.Id);
+            
+            newNode.Attr.FillColor = n.Attr.FillColor;
+            //newNode.Attr.AddStyle()
+            newNode.Attr.Shape = n.Attr.Shape;
+            newNode.LabelText = n.LabelText;
+            
             var newNode = WebGraph.StyleNode(n.Id, newGraph); // Apply styling while copying nodes
         }
         foreach (var e in viewer.Graph.Edges)
@@ -144,6 +166,10 @@ public class FormVisualizer : Form
         viewer.NeedToCalculateLayout = true;
         viewer.Invalidate();
         viewer.Refresh();
+
+        stopwatch.Stop();
+
+        this.Text = "NodeGraph -- Generated in " + stopwatch.ElapsedMilliseconds.ToString() + " ms";
     }
 
     private string ShortenUrl(string url)
@@ -159,4 +185,16 @@ public class FormVisualizer : Form
         }
     }
 
+    private void InitializeComponent()
+    {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(FormVisualizer));
+            this.SuspendLayout();
+            // 
+            // FormVisualizer
+            // 
+            this.ClientSize = new System.Drawing.Size(800, 600);
+            this.Name = "FormVisualizer";
+            this.ResumeLayout(false);
+
+    }
 }
