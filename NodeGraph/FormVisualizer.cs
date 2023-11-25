@@ -1,6 +1,7 @@
 ﻿using Microsoft.Msagl.Drawing;
 using Microsoft.Msagl.GraphViewerGdi;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Windows.Forms;
 using System;
 using Microsoft.Msagl.Layout.MDS;
@@ -16,17 +17,27 @@ public class FormVisualizer : Form
 
     private Stopwatch stopwatch = new Stopwatch(); // for performance measurement
 
+    // yeah this looks like shit cause theres a duplicate color class cause of the OutsideAreaBrush implementation im sorry
+    // im gonna revise this at some point anyway and move a lot of the code from here to WebGraph eventually
+    public Microsoft.Msagl.Drawing.Color defaultNodeColor = Microsoft.Msagl.Drawing.Color.LightGray;
+    public Microsoft.Msagl.Drawing.Color defaultEdgeColor = Microsoft.Msagl.Drawing.Color.Black;
+
     public FormVisualizer(Graph graph, WebGraph webGraph)
     {
-        this.Text = "NodeGraph -- Click on any node to begin"; // sets the title of the form
+        this.Text = "NodeGraph -- Double click on any node to begin"; // sets the title of the form
+        this.Icon = NodeGraph.Properties.Resources.icon; // ok i was gonna put this in the InitializeComponent function but it didnt work >_< thats why its up here
+
+        this.WindowState = FormWindowState.Maximized; // starts the program in maximized view
 
         this.webGraph = webGraph;
+
         visitedDomains = new HashSet<string>(); // Initialize the visited domains HashSet
 
         viewer = new GViewer
         {
             Graph = graph, // should still work fine with MDS layout settings...
-            Dock = DockStyle.Fill
+            Dock = DockStyle.Fill,
+            OutsideAreaBrush = Brushes.White // by defualt, the window has a bunch of grey space which looks ugly so i set it to 
         };
 
         tooltip = new ToolTip();
@@ -104,13 +115,13 @@ public class FormVisualizer : Form
             if (!viewer.Graph.NodeMap.ContainsKey(linkedNode.Url))
             {
                 var linkedMsaglNode = viewer.Graph.AddNode(linkedNode.Url);
-                linkedMsaglNode.Attr.FillColor = Color.LightGray; // default color for linked nodes
+                linkedMsaglNode.Attr.FillColor = defaultNodeColor; // default color for linked nodes
                 linkedMsaglNode.Attr.Shape = Shape.Circle;
                 linkedMsaglNode.LabelText = ShortenUrl(linkedNode.Url); // shortened label for linked nodes
 
                 // Create a directed edge
                 var edge = viewer.Graph.AddEdge(node.Url, linkedNode.Url);
-                edge.Attr.Color = Color.Black;
+                edge.Attr.Color = defaultEdgeColor;
                 edge.Attr.ArrowheadAtTarget = ArrowStyle.Normal;
             }
         }
@@ -120,7 +131,9 @@ public class FormVisualizer : Form
         foreach (var n in viewer.Graph.Nodes)
         {
             var newNode = newGraph.AddNode(n.Id);
+            
             newNode.Attr.FillColor = n.Attr.FillColor;
+            //newNode.Attr.AddStyle()
             newNode.Attr.Shape = n.Attr.Shape;
             newNode.LabelText = n.LabelText;
         }
@@ -160,4 +173,16 @@ public class FormVisualizer : Form
         }
     }
 
+    private void InitializeComponent()
+    {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(FormVisualizer));
+            this.SuspendLayout();
+            // 
+            // FormVisualizer
+            // 
+            this.ClientSize = new System.Drawing.Size(800, 600);
+            this.Name = "FormVisualizer";
+            this.ResumeLayout(false);
+
+    }
 }
