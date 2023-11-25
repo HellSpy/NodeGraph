@@ -59,20 +59,20 @@ public class WebGraph
         var graph = new Graph("webgraph");
 
         // use MDS layout settings
-        var mdsLayout = new MdsLayoutSettings();
-
-        // You can adjust MDS layout settings here
-        // For example:
-        // mdsLayout.IterationLimit = 100;
+        var mdsLayout = new MdsLayoutSettings
+        {
+            // RemoveOverlaps = true, // Enable overlap removal
+            // ScaleX = 1.0, // Set X scaling
+            // ScaleY = 1.0, // Set Y scaling
+            // PackingAspectRatio = 1.0, // Set packing aspect ratio
+            // PivotNumber = 50 // Set the number of pivots
+        };
 
         graph.LayoutAlgorithmSettings = mdsLayout;
 
         AddNodeToGraph(RootNode, graph, new HashSet<string>());
 
-        // Apply clustering if needed
         ApplyClustering(graph);
-
-        // here you can handle additional layout adjustments or post-processing, feel free to add any other optional stuff
 
         return graph;
     }
@@ -113,25 +113,44 @@ public class WebGraph
         var msaglNode = graph.AddNode(url);
         Uri uri = new Uri(url);
 
-        // Check for an exact match in the list of top domains against the full URL
-        if (TopDomains.Domains.Any(d => string.Equals(d, uri.Host, StringComparison.OrdinalIgnoreCase)))
+        // Check if the domain is in the list of popular domains
+        bool isPopularDomain = TopDomains.Domains.Any(d => string.Equals(d, uri.Host, StringComparison.OrdinalIgnoreCase));
+
+        // Check if the URL is exactly the domain (without any additional path or query)
+        bool isExactDomainMatch = (url.Equals($"http://{uri.Host}", StringComparison.OrdinalIgnoreCase) || url.Equals($"https://{uri.Host}", StringComparison.OrdinalIgnoreCase));
+
+        if (isPopularDomain && isExactDomainMatch)
         {
             // Special styling for popular domains
-            msaglNode.Attr.FillColor = Color.Red;
-            msaglNode.Label.FontSize = 8; // larger font size for popular domains
+            msaglNode.Attr.FillColor = Color.Moccasin;
+            msaglNode.Label.FontSize = 35; // Larger font size for popular domains
             msaglNode.Attr.Shape = Shape.Circle;
         }
         else
         {
             // Default styling for other domains
-            msaglNode.Attr.FillColor = Color.LightGray;
+            msaglNode.Attr.FillColor = Color.AliceBlue;
             msaglNode.Attr.Shape = Shape.Circle;
             msaglNode.Label.FontSize = 8;
         }
 
-        msaglNode.LabelText = uri.Host; // shortened label
+    /*  // Uncomment this entire code if you want to display domains and their first part (for example, youtube.com/about instead of youtube.com)
+        // Set the label text to include the domain and the first segment of the path, if any
+        string label = uri.Host;
+        var pathSegments = uri.AbsolutePath.Split(new char[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+        if (pathSegments.Length > 0)
+        {
+            label += "/" + pathSegments[0];
+        }
+        msaglNode.LabelText = label;
+        return msaglNode;
+    */
+
+        msaglNode.LabelText = uri.Host; // Shortened label
         return msaglNode;
     }
+
+
 
     private void ApplyClustering(Graph graph)
     {
