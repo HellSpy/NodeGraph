@@ -120,6 +120,20 @@ public class WebGraph
         var msaglNode = graph.AddNode(url);
         Uri uri = new Uri(url);
 
+
+    /*      
+        // uncomment this section if you just want the exact domain and not subdomains. make sure to replace if (TopDomains)
+            right above special styling
+
+        // Check if the domain is in the list of popular domains
+        bool isPopularDomain = TopDomains.Domains.Any(d => string.Equals(d, uri.Host, StringComparison.OrdinalIgnoreCase));
+
+        // Check if the URL is exactly the domain (without any additional path or query)
+        bool isExactDomainMatch = (url.Equals($"http://{uri.Host}", StringComparison.OrdinalIgnoreCase) || url.Equals($"https://{uri.Host}", StringComparison.OrdinalIgnoreCase));
+
+        if (isPopularDomain && isExactDomainMatch)
+    */
+
         string domain = uri.Host.ToLower(); // Extract the domain from the URL and convert it to lower case for case-insensitive comparison
 
         // check for an exact & partial match in the list of top domains
