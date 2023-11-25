@@ -81,6 +81,10 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
+    <Compile Include="Tooltip.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="TopDomains.cs" />
     <Compile Include="WebNode.cs" />
     <Compile Include="WebGraph.cs" />
     <Compile Include="Program.cs" />

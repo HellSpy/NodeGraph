@@ -6,11 +6,12 @@ using System.Windows.Forms;
 using System;
 using Microsoft.Msagl.Layout.MDS;
 using System.Diagnostics;
+using System.Drawing; // added this
 
 public class FormVisualizer : Form
 {
     private GViewer viewer;
-    private ToolTip tooltip;
+    private CustomTooltipForm customTooltip; // Custom tooltip form
     private Dictionary<string, string> nodeUrlMap;
     private WebGraph webGraph;
     private HashSet<string> visitedDomains; // Added to track visited domains
@@ -40,7 +41,9 @@ public class FormVisualizer : Form
             OutsideAreaBrush = Brushes.White // by defualt, the window has a bunch of grey space which looks ugly so i set it to 
         };
 
-        tooltip = new ToolTip();
+        customTooltip = new CustomTooltipForm();
+        Console.WriteLine("Tooltip initialized."); // debugging 
+
         nodeUrlMap = new Dictionary<string, string>();
 
         foreach (var node in graph.Nodes)
@@ -57,11 +60,13 @@ public class FormVisualizer : Form
     {
         if (viewer.GetObjectAt(e.X, e.Y) is DNode dnode && nodeUrlMap.ContainsKey(dnode.Node.Id))
         {
-            tooltip.SetToolTip(viewer, nodeUrlMap[dnode.Node.Id]);
+            customTooltip.SetTooltipText(nodeUrlMap[dnode.Node.Id]);
+            customTooltip.Location = new Point(Cursor.Position.X + 10, Cursor.Position.Y + 10);
+            customTooltip.Show();
         }
         else
         {
-            tooltip.SetToolTip(viewer, string.Empty);
+            customTooltip.Hide();
         }
     }
 
@@ -114,19 +119,17 @@ public class FormVisualizer : Form
         {
             if (!viewer.Graph.NodeMap.ContainsKey(linkedNode.Url))
             {
-                var linkedMsaglNode = viewer.Graph.AddNode(linkedNode.Url);
-                linkedMsaglNode.Attr.FillColor = defaultNodeColor; // default color for linked nodes
-                linkedMsaglNode.Attr.Shape = Shape.Circle;
-                linkedMsaglNode.LabelText = ShortenUrl(linkedNode.Url); // shortened label for linked nodes
-
-                // Create a directed edge
-                var edge = viewer.Graph.AddEdge(node.Url, linkedNode.Url);
-                edge.Attr.Color = defaultEdgeColor;
                 edge.Attr.ArrowheadAtTarget = ArrowStyle.Normal;
+
+                // Add nodes to the nodeUrlMap so that that tooltip function can work
+                if (!nodeUrlMap.ContainsKey(linkedNode.Url))
+                {
+                    nodeUrlMap[linkedNode.Url] = linkedNode.Url; // Or whatever value you want for the tooltip
+                }
             }
         }
 
-        // creating a new graph instance to apply the MDS layout
+        // Copying nodes and edges to a new graph instance with applied MDS layout
         var newGraph = new Graph();
         foreach (var n in viewer.Graph.Nodes)
         {
@@ -136,6 +139,8 @@ public class FormVisualizer : Form
             //newNode.Attr.AddStyle()
             newNode.Attr.Shape = n.Attr.Shape;
             newNode.LabelText = n.LabelText;
+            
+            var newNode = WebGraph.StyleNode(n.Id, newGraph); // Apply styling while copying nodes
         }
         foreach (var e in viewer.Graph.Edges)
         {
@@ -144,12 +149,19 @@ public class FormVisualizer : Form
             newEdge.Attr.ArrowheadAtTarget = e.Attr.ArrowheadAtTarget;
         }
 
-        // apply MDS layout settings to the new graph
-        var mdsLayout = new MdsLayoutSettings();
-        // adjust MDS layout settings here if needed
+        // Apply MDS layout settings
+        var mdsLayout = new MdsLayoutSettings
+        {
+            // RemoveOverlaps = true, // Enable overlap removal
+            // ScaleX = 1.0, // Set X scaling
+            // ScaleY = 1.0, // Set Y scaling
+            // PackingAspectRatio = 1.0, // Set packing aspect ratio
+            // PivotNumber = 50 // Set the number of pivots
+        };
+
         newGraph.LayoutAlgorithmSettings = mdsLayout;
 
-        // assign the new graph to the viewer and refresh the layout
+        // Update the viewer with the new graph
         viewer.Graph = newGraph;
         viewer.NeedToCalculateLayout = true;
         viewer.Invalidate();
