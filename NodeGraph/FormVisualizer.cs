@@ -119,6 +119,12 @@ public class FormVisualizer : Form
         {
             if (!viewer.Graph.NodeMap.ContainsKey(linkedNode.Url))
             {
+                // Use StyleNode for styling linked nodes
+                WebGraph.StyleNode(linkedNode.Url, viewer.Graph);
+
+                // Create a directed edge
+                var edge = viewer.Graph.AddEdge(node.Url, linkedNode.Url);
+                edge.Attr.Color = Microsoft.Msagl.Drawing.Color.Black;
                 edge.Attr.ArrowheadAtTarget = ArrowStyle.Normal;
 
                 // Add nodes to the nodeUrlMap so that that tooltip function can work
@@ -133,13 +139,6 @@ public class FormVisualizer : Form
         var newGraph = new Graph();
         foreach (var n in viewer.Graph.Nodes)
         {
-            var newNode = newGraph.AddNode(n.Id);
-            
-            newNode.Attr.FillColor = n.Attr.FillColor;
-            //newNode.Attr.AddStyle()
-            newNode.Attr.Shape = n.Attr.Shape;
-            newNode.LabelText = n.LabelText;
-            
             var newNode = WebGraph.StyleNode(n.Id, newGraph); // Apply styling while copying nodes
         }
         foreach (var e in viewer.Graph.Edges)
