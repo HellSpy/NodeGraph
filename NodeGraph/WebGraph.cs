@@ -113,13 +113,10 @@ public class WebGraph
         var msaglNode = graph.AddNode(url);
         Uri uri = new Uri(url);
 
-        // Check if the domain is in the list of popular domains
-        bool isPopularDomain = TopDomains.Domains.Any(d => string.Equals(d, uri.Host, StringComparison.OrdinalIgnoreCase));
+        string domain = uri.Host.ToLower(); // Extract the domain from the URL and convert it to lower case for case-insensitive comparison
 
-        // Check if the URL is exactly the domain (without any additional path or query)
-        bool isExactDomainMatch = (url.Equals($"http://{uri.Host}", StringComparison.OrdinalIgnoreCase) || url.Equals($"https://{uri.Host}", StringComparison.OrdinalIgnoreCase));
-
-        if (isPopularDomain && isExactDomainMatch)
+        // check for an exact & partial match in the list of top domains
+        if (TopDomains.Domains.Any(d => string.Equals(d, domain, StringComparison.OrdinalIgnoreCase)))
         {
             // Special styling for popular domains
             msaglNode.Attr.FillColor = Color.Moccasin;
@@ -134,23 +131,21 @@ public class WebGraph
             msaglNode.Label.FontSize = 8;
         }
 
-    /*  // Uncomment this entire code if you want to display domains and their first part (for example, youtube.com/about instead of youtube.com)
-        // Set the label text to include the domain and the first segment of the path, if any
-        string label = uri.Host;
-        var pathSegments = uri.AbsolutePath.Split(new char[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
-        if (pathSegments.Length > 0)
-        {
-            label += "/" + pathSegments[0];
-        }
-        msaglNode.LabelText = label;
-        return msaglNode;
-    */
+        /*  // Uncomment this entire code if you want to display domains and their first part (for example, youtube.com/about instead of youtube.com)
+            // Set the label text to include the domain and the first segment of the path, if any
+            string label = uri.Host;
+            var pathSegments = uri.AbsolutePath.Split(new char[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+            if (pathSegments.Length > 0)
+            {
+                label += "/" + pathSegments[0];
+            }
+            msaglNode.LabelText = label;
+            return msaglNode;
+        */
 
         msaglNode.LabelText = uri.Host; // Shortened label
         return msaglNode;
     }
-
-
 
     private void ApplyClustering(Graph graph)
     {
