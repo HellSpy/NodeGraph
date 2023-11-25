@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Windows.Forms;
 using System;
 using Microsoft.Msagl.Layout.MDS;
+using System.Diagnostics;
 
 public class FormVisualizer : Form
 {
@@ -13,8 +14,12 @@ public class FormVisualizer : Form
     private WebGraph webGraph;
     private HashSet<string> visitedDomains; // Added to track visited domains
 
+    private Stopwatch stopwatch = new Stopwatch(); // for performance measurement
+
     public FormVisualizer(Graph graph, WebGraph webGraph)
     {
+        this.Text = "NodeGraph -- Click on any node to begin"; // sets the title of the form
+
         this.webGraph = webGraph;
         visitedDomains = new HashSet<string>(); // Initialize the visited domains HashSet
 
@@ -70,6 +75,9 @@ public class FormVisualizer : Form
         {
             Console.WriteLine("Node clicked: " + dnode.Node.Id);
 
+            stopwatch.Reset(); // resets the stopwatch & removes the previous value (in case it's not zero)
+            stopwatch.Start(); // begins the stopwatch so we can see how long it takes to generate the graph
+
             var node = new WebNode(dnode.Node.Id);
             webGraph.FetchLinks(node, visitedDomains);
 
@@ -88,6 +96,8 @@ public class FormVisualizer : Form
     // i gave up so we will rebuild the entire graph with each update, which is going to cost more resources
     private void UpdateGraph(WebNode node)
     {
+        Console.WriteLine("Generating graph...");
+
         // add new nodes and edges to the existing graph
         foreach (var linkedNode in node.LinkedNodes)
         {
@@ -131,6 +141,10 @@ public class FormVisualizer : Form
         viewer.NeedToCalculateLayout = true;
         viewer.Invalidate();
         viewer.Refresh();
+
+        stopwatch.Stop();
+
+        this.Text = "NodeGraph -- Generated in " + stopwatch.ElapsedMilliseconds.ToString() + " ms";
     }
 
     private string ShortenUrl(string url)
