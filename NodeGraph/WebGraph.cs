@@ -139,8 +139,8 @@ public class WebGraph
         // mark the current node's URL as visited
         visitedDomains.Add(node.Url);
 
-        // apply styling to the current node and add it to the graph
-        var msaglNode = StyleNode(node.Url, graph);
+        // When calling StyleNode, pass the number of linked nodes
+        var msaglNode = StyleNode(node.Url, graph, node.LinkedNodes.Count);
 
         // iterate over each linked node of the current node
         foreach (var linkedNode in node.LinkedNodes)
@@ -162,58 +162,26 @@ public class WebGraph
     }
 
     // added a new function for styling the initial linked nodes
-    public static Node StyleNode(string url, Graph graph) // set to public static so that it can be accessed by other files
+    public static Node StyleNode(string url, Graph graph, int linkedNodeCount = 0) // Include linkedNodeCount as a parameter
     {
         var msaglNode = graph.AddNode(url);
         Uri uri = new Uri(url);
 
+        // Calculate the color based on the number of linked nodes
+        int maxLinkedNodes = 10; // You can adjust this based on your needs
+        double intensity = Math.Min(linkedNodeCount / (double)maxLinkedNodes, 1.0);
+        byte blueShade = (byte)(255 * intensity); // Ensure blueShade is a byte
 
-    /*      
-        // uncomment this section if you just want the exact domain and not subdomains. make sure to replace if (TopDomains)
-            right above special styling
+        msaglNode.Attr.FillColor = new Color(0, 0, blueShade); // Darker blue for more connections
 
-        // Check if the domain is in the list of popular domains
-        bool isPopularDomain = TopDomains.Domains.Any(d => string.Equals(d, uri.Host, StringComparison.OrdinalIgnoreCase));
+        msaglNode.Attr.Shape = Shape.Circle;
+        msaglNode.Label.FontSize = 8; // You can adjust the font size as needed
+        msaglNode.LabelText = uri.Host;
+        msaglNode.Label.FontColor = Color.White;
 
-        // Check if the URL is exactly the domain (without any additional path or query)
-        bool isExactDomainMatch = (url.Equals($"http://{uri.Host}", StringComparison.OrdinalIgnoreCase) || url.Equals($"https://{uri.Host}", StringComparison.OrdinalIgnoreCase));
-
-        if (isPopularDomain && isExactDomainMatch)
-    */
-
-        string domain = uri.Host.ToLower(); // Extract the domain from the URL and convert it to lower case for case-insensitive comparison
-
-        // check for an exact & partial match in the list of top domains
-        if (TopDomains.Domains.Any(d => string.Equals(d, domain, StringComparison.OrdinalIgnoreCase)))
-        {
-            // Special styling for popular domains
-            msaglNode.Attr.FillColor = Color.Moccasin;
-            msaglNode.Label.FontSize = 35; // Larger font size for popular domains
-            msaglNode.Attr.Shape = Shape.Circle;
-        }
-        else
-        {
-            // Default styling for other domains
-            msaglNode.Attr.FillColor = Color.AliceBlue;
-            msaglNode.Attr.Shape = Shape.Circle;
-            msaglNode.Label.FontSize = 8;
-        }
-
-        /*  // Uncomment this entire code if you want to display domains and their first part (for example, youtube.com/about instead of youtube.com)
-            // Set the label text to include the domain and the first segment of the path, if any
-            string label = uri.Host;
-            var pathSegments = uri.AbsolutePath.Split(new char[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
-            if (pathSegments.Length > 0)
-            {
-                label += "/" + pathSegments[0];
-            }
-            msaglNode.LabelText = label;
-            return msaglNode;
-        */
-
-        msaglNode.LabelText = uri.Host; // Shortened label
         return msaglNode;
     }
+
 
     private void ApplyClustering(Graph graph)
     {
