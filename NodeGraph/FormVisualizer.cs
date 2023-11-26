@@ -6,7 +6,6 @@ using System.Windows.Forms;
 using System;
 using Microsoft.Msagl.Layout.MDS;
 using System.Diagnostics;
-using System.Drawing; // added this
 
 public class FormVisualizer : Form
 {
