@@ -16,6 +16,8 @@ public class FormVisualizer : Form
     private WebGraph webGraph;
     private HashSet<string> visitedDomains; // Added to track visited domains
 
+    private AddUrlForm addUrlForm; // for the box to add more URLs
+
     private Stopwatch stopwatch = new Stopwatch(); // for performance measurement
 
     // yeah this looks like shit cause theres a duplicate color class cause of the OutsideAreaBrush implementation im sorry
@@ -25,6 +27,17 @@ public class FormVisualizer : Form
 
     public FormVisualizer(Graph graph, WebGraph webGraph)
     {
+
+        // Create a menu strip (new toolbar) comment out this entire code if you want the default toolbar back.
+        var menuStrip = new MenuStrip();
+        var fileMenuItem = new ToolStripMenuItem("File");
+        var addUrlMenuItem = new ToolStripMenuItem("Add URL");
+        addUrlMenuItem.Click += AddUrlMenuItem_Click;
+        fileMenuItem.DropDownItems.Add(addUrlMenuItem);
+        menuStrip.Items.Add(fileMenuItem);
+
+        this.Controls.Add(menuStrip); // this is the end of the menu strip
+
         this.Text = "NodeGraph -- Double click on any node to begin"; // sets the title of the form
         this.Icon = NodeGraph.Properties.Resources.icon; // ok i was gonna put this in the InitializeComponent function but it didnt work >_< thats why its up here
 
@@ -190,6 +203,36 @@ public class FormVisualizer : Form
         {
             return url; // Return the original URL if it's not a valid URI
         }
+    }
+
+    private void ShowAddUrlForm()
+    {
+        addUrlForm = new AddUrlForm();
+        var result = addUrlForm.ShowDialog();
+
+        if (result == DialogResult.OK)
+        {
+            string enteredUrl = addUrlForm.EnteredUrl;
+
+            // Check if the entered URL is valid before processing
+            if (!string.IsNullOrEmpty(enteredUrl) && IsValidUrl(enteredUrl))
+            {
+                var newNode = new WebNode(enteredUrl);
+                webGraph.FetchLinks(newNode, visitedDomains);
+                UpdateGraph(newNode);
+            }
+            else
+            {
+                MessageBox.Show("Invalid URL. Please enter a valid URL.");
+            }
+        }
+
+        addUrlForm.Dispose();
+    }
+
+    private void AddUrlMenuItem_Click(object sender, EventArgs e)
+    {
+        ShowAddUrlForm();
     }
 
     private void InitializeComponent()
