@@ -6,6 +6,7 @@ using System.Windows.Forms;
 using System;
 using Microsoft.Msagl.Layout.MDS;
 using System.Diagnostics;
+using Microsoft.Msagl.Core.Routing;
 
 public class FormVisualizer : Form
 {
@@ -113,23 +114,36 @@ public class FormVisualizer : Form
     {
         Console.WriteLine("Generating graph...");
 
-        // add new nodes and edges to the existing graph
+        // Dictionary to hold the count of linked nodes for each node URL
+        var linkedNodeCounts = new Dictionary<string, int>();
+
+        // Initialize the linked node counts
+        foreach (var n in viewer.Graph.Nodes)
+        {
+            linkedNodeCounts[n.Id] = 0;
+        }
+
+        // Add the new nodes and edges to the existing graph
         foreach (var linkedNode in node.LinkedNodes)
         {
             if (!viewer.Graph.NodeMap.ContainsKey(linkedNode.Url))
             {
-                // Use StyleNode for styling linked nodes
-                WebGraph.StyleNode(linkedNode.Url, viewer.Graph);
+                // Initialize the count for new nodes
+                linkedNodeCounts[linkedNode.Url] = 0;
 
                 // Create a directed edge
                 var edge = viewer.Graph.AddEdge(node.Url, linkedNode.Url);
                 edge.Attr.Color = Microsoft.Msagl.Drawing.Color.Black;
                 edge.Attr.ArrowheadAtTarget = ArrowStyle.Normal;
 
-                // Add nodes to the nodeUrlMap so that that tooltip function can work
+                // Increment linked node counts for both nodes in the edge
+                linkedNodeCounts[node.Url]++;
+                linkedNodeCounts[linkedNode.Url]++;
+
+                // Add nodes to the nodeUrlMap for tooltips
                 if (!nodeUrlMap.ContainsKey(linkedNode.Url))
                 {
-                    nodeUrlMap[linkedNode.Url] = linkedNode.Url; // Or whatever value you want for the tooltip
+                    nodeUrlMap[linkedNode.Url] = linkedNode.Url;
                 }
             }
         }
@@ -138,8 +152,10 @@ public class FormVisualizer : Form
         var newGraph = new Graph();
         foreach (var n in viewer.Graph.Nodes)
         {
-            var newNode = WebGraph.StyleNode(n.Id, newGraph); // Apply styling while copying nodes
+            // Apply styling while copying nodes with the correct linkedNodeCount
+            var newNode = WebGraph.StyleNode(n.Id, newGraph, linkedNodeCounts[n.Id]);
         }
+
         foreach (var e in viewer.Graph.Edges)
         {
             var newEdge = newGraph.AddEdge(e.Source, e.Target);
@@ -147,15 +163,18 @@ public class FormVisualizer : Form
             newEdge.Attr.ArrowheadAtTarget = e.Attr.ArrowheadAtTarget;
         }
 
+        // edge routing seetings that are applied to MDS Layout
+        var edgeRouting = new EdgeRoutingSettings
+        {
+            EdgeRoutingMode = EdgeRoutingMode.SplineBundling
+        };
+
         // Apply MDS layout settings
         var mdsLayout = new MdsLayoutSettings
         {
-            // RemoveOverlaps = true, // Enable overlap removal
-            // ScaleX = 1.0, // Set X scaling
-            // ScaleY = 1.0, // Set Y scaling
-            // PackingAspectRatio = 1.0, // Set packing aspect ratio
-            // PivotNumber = 50 // Set the number of pivots
+            EdgeRoutingSettings = edgeRouting
         };
+
 
         newGraph.LayoutAlgorithmSettings = mdsLayout;
 

@@ -164,6 +164,8 @@ public class WebGraph
     // added a new function for styling the initial linked nodes
     public static Node StyleNode(string url, Graph graph, int linkedNodeCount = 0) // Include linkedNodeCount as a parameter
     {
+        Console.WriteLine($"Styling node: {url}, Linked Node Count: {linkedNodeCount}"); // debugging
+
         var msaglNode = graph.AddNode(url);
         Uri uri = new Uri(url);
 
