@@ -6,6 +6,7 @@ using System.Windows.Forms;
 using System;
 using Microsoft.Msagl.Layout.MDS;
 using System.Diagnostics;
+using Microsoft.Msagl.Core.Routing;
 
 public class FormVisualizer : Form
 {
@@ -147,6 +148,13 @@ public class FormVisualizer : Form
             newEdge.Attr.ArrowheadAtTarget = e.Attr.ArrowheadAtTarget;
         }
 
+
+        // edge routing seetings that are applied to MDS Layout
+        var edgeRouting = new EdgeRoutingSettings
+        {
+            EdgeRoutingMode = EdgeRoutingMode.SplineBundling
+        };
+
         // Apply MDS layout settings
         var mdsLayout = new MdsLayoutSettings
         {
@@ -155,6 +163,7 @@ public class FormVisualizer : Form
             // ScaleY = 1.0, // Set Y scaling
             // PackingAspectRatio = 1.0, // Set packing aspect ratio
             // PivotNumber = 50 // Set the number of pivots
+            EdgeRoutingSettings = edgeRouting
         };
 
         newGraph.LayoutAlgorithmSettings = mdsLayout;

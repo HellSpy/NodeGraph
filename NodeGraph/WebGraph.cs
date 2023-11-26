@@ -105,7 +105,7 @@ public class WebGraph
         var graph = new Graph("webgraph");
 
 
-        //edge routing settings (which is applied to MdsLayout)
+        // edge routing seetings that are applied to MDS Layout
         var edgeRouting = new EdgeRoutingSettings
         {
             EdgeRoutingMode = EdgeRoutingMode.SplineBundling
