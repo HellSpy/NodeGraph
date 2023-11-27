@@ -9,7 +9,7 @@ class Program
     static void Main(string[] args)
     {
         WebGraph webGraph = new WebGraph();
-        webGraph.BuildGraph("https://github.com");
+        webGraph.BuildGraph("https://youtube.com");
 
         Graph graph = webGraph.Visualize();
 

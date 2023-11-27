@@ -12,10 +12,13 @@ public class WebGraph
 {
     private readonly HtmlWeb web;
     public WebNode RootNode { get; private set; }
+    public HashSet<string> VisitedDomains { get; private set; }
+
 
     public WebGraph()
     {
         web = new HtmlWeb();
+        VisitedDomains = new HashSet<string>();
     }
 
     public void BuildGraph(string rootUrl)

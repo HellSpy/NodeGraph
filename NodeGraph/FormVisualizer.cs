@@ -36,6 +36,10 @@ public class FormVisualizer : Form
         fileMenuItem.DropDownItems.Add(addUrlMenuItem);
         menuStrip.Items.Add(fileMenuItem);
 
+        var recursionMenuItem = new ToolStripMenuItem("Recursion");
+        recursionMenuItem.Click += RecursionMenuItem_Click;
+        fileMenuItem.DropDownItems.Add(recursionMenuItem); // Add the "Recursion" menu item
+
         this.Controls.Add(menuStrip); // this is the end of the menu strip
 
         this.Text = "NodeGraph -- Double click on any node to begin"; // sets the title of the form
@@ -234,6 +238,14 @@ public class FormVisualizer : Form
     {
         ShowAddUrlForm();
     }
+
+    private void RecursionMenuItem_Click(object sender, EventArgs e)
+    {
+        // Open the recursion form and pass viewer and nodeUrlMap
+        var recursionForm = new RecursionForm(webGraph, viewer, nodeUrlMap);
+        recursionForm.ShowDialog();
+    }
+
 
     private void InitializeComponent()
     {
