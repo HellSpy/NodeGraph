@@ -27,21 +27,6 @@ public class FormVisualizer : Form
 
     public FormVisualizer(Graph graph, WebGraph webGraph)
     {
-
-        // Create a menu strip (new toolbar) comment out this entire code if you want the default toolbar back.
-        var menuStrip = new MenuStrip();
-        var fileMenuItem = new ToolStripMenuItem("File");
-        var addUrlMenuItem = new ToolStripMenuItem("Add URL");
-        addUrlMenuItem.Click += AddUrlMenuItem_Click;
-        fileMenuItem.DropDownItems.Add(addUrlMenuItem);
-        menuStrip.Items.Add(fileMenuItem);
-
-        var recursionMenuItem = new ToolStripMenuItem("Recursion");
-        recursionMenuItem.Click += RecursionMenuItem_Click;
-        fileMenuItem.DropDownItems.Add(recursionMenuItem); // Add the "Recursion" menu item
-
-        this.Controls.Add(menuStrip); // this is the end of the menu strip
-
         this.Text = "NodeGraph -- Double click on any node to begin"; // sets the title of the form
         this.Icon = NodeGraph.Properties.Resources.icon; // ok i was gonna put this in the InitializeComponent function but it didnt work >_< thats why its up here
 
@@ -71,6 +56,20 @@ public class FormVisualizer : Form
         viewer.MouseMove += Viewer_MouseMove;
         viewer.MouseDoubleClick += Viewer_MouseDoubleClick; // Changed to MouseDoubleClick so that you can double click duh
         Controls.Add(viewer);
+
+        // Add custom menu items to the default MainMenu
+        MainMenu mainMenu = new MainMenu();
+        MenuItem fileMenuItem = new MenuItem("Misc");
+        MenuItem addUrlMenuItem = new MenuItem("Add URL");
+        addUrlMenuItem.Click += AddUrlMenuItem_Click;
+        fileMenuItem.MenuItems.Add(addUrlMenuItem);
+
+        MenuItem recursionMenuItem = new MenuItem("Recursion");
+        recursionMenuItem.Click += RecursionMenuItem_Click;
+        fileMenuItem.MenuItems.Add(recursionMenuItem);
+
+        mainMenu.MenuItems.Add(fileMenuItem);
+        this.Menu = mainMenu; // comment this code if you want 
     }
 
     private void Viewer_MouseMove(object sender, MouseEventArgs e)
