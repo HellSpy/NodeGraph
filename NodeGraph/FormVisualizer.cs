@@ -6,7 +6,7 @@ using System.Windows.Forms;
 using System;
 using Microsoft.Msagl.Layout.MDS;
 using System.Diagnostics;
-using System.Drawing; // added this
+using Microsoft.Msagl.Core.Routing;
 
 public class FormVisualizer : Form
 {
@@ -15,6 +15,8 @@ public class FormVisualizer : Form
     private Dictionary<string, string> nodeUrlMap;
     private WebGraph webGraph;
     private HashSet<string> visitedDomains; // Added to track visited domains
+
+    private AddUrlForm addUrlForm; // for the box to add more URLs
 
     private Stopwatch stopwatch = new Stopwatch(); // for performance measurement
 
@@ -25,6 +27,23 @@ public class FormVisualizer : Form
 
     public FormVisualizer(Graph graph, WebGraph webGraph)
     {
+
+        // Create a menu strip (new toolbar) comment out this entire code if you want the default toolbar back.
+        // Move this code downwards to the bottom of the formvisualizer if you want the default toolbar and this menu to exist.
+        var menuStrip = new MenuStrip();
+        var fileMenuItem = new ToolStripMenuItem("File");
+        var addUrlMenuItem = new ToolStripMenuItem("Add URL");
+        addUrlMenuItem.Click += AddUrlMenuItem_Click;
+        fileMenuItem.DropDownItems.Add(addUrlMenuItem);
+        menuStrip.Items.Add(fileMenuItem);
+
+        var recursionMenuItem = new ToolStripMenuItem("Recursion");
+        recursionMenuItem.Click += RecursionMenuItem_Click;
+        fileMenuItem.DropDownItems.Add(recursionMenuItem); // Add the "Recursion" menu item
+
+        this.Controls.Add(menuStrip); // this is the end of the menu strip
+
+
         this.Text = "NodeGraph -- Double click on any node to begin"; // sets the title of the form
         this.Icon = NodeGraph.Properties.Resources.icon; // ok i was gonna put this in the InitializeComponent function but it didnt work >_< thats why its up here
 
@@ -148,6 +167,13 @@ public class FormVisualizer : Form
             newEdge.Attr.ArrowheadAtTarget = e.Attr.ArrowheadAtTarget;
         }
 
+
+        // edge routing seetings that are applied to MDS Layout
+        var edgeRouting = new EdgeRoutingSettings
+        {
+            EdgeRoutingMode = EdgeRoutingMode.SplineBundling
+        };
+
         // Apply MDS layout settings
         var mdsLayout = new MdsLayoutSettings
         {
@@ -156,6 +182,7 @@ public class FormVisualizer : Form
             // ScaleY = 1.0, // Set Y scaling
             // PackingAspectRatio = 1.0, // Set packing aspect ratio
             // PivotNumber = 50 // Set the number of pivots
+            EdgeRoutingSettings = edgeRouting
         };
 
         newGraph.LayoutAlgorithmSettings = mdsLayout;
@@ -183,6 +210,44 @@ public class FormVisualizer : Form
             return url; // Return the original URL if it's not a valid URI
         }
     }
+
+    private void ShowAddUrlForm()
+    {
+        addUrlForm = new AddUrlForm();
+        var result = addUrlForm.ShowDialog();
+
+        if (result == DialogResult.OK)
+        {
+            string enteredUrl = addUrlForm.EnteredUrl;
+
+            // Check if the entered URL is valid before processing
+            if (!string.IsNullOrEmpty(enteredUrl) && IsValidUrl(enteredUrl))
+            {
+                var newNode = new WebNode(enteredUrl);
+                webGraph.FetchLinks(newNode, visitedDomains);
+                UpdateGraph(newNode);
+            }
+            else
+            {
+                MessageBox.Show("Invalid URL. Please enter a valid URL.");
+            }
+        }
+
+        addUrlForm.Dispose();
+    }
+
+    private void AddUrlMenuItem_Click(object sender, EventArgs e)
+    {
+        ShowAddUrlForm();
+    }
+
+    private void RecursionMenuItem_Click(object sender, EventArgs e)
+    {
+        // Open the recursion form and pass viewer and nodeUrlMap
+        var recursionForm = new RecursionForm(webGraph, viewer, nodeUrlMap);
+        recursionForm.ShowDialog();
+    }
+
 
     private void InitializeComponent()
     {

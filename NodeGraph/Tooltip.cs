@@ -10,6 +10,11 @@ public class CustomTooltipForm : Form
         InitializeComponent();
     }
 
+    protected override bool ShowWithoutActivation
+    {
+        get { return true; } // Prevent the tooltip form from taking focus
+    }
+
     private void InitializeComponent()
     {
         this.label = new Label();
@@ -37,5 +42,9 @@ public class CustomTooltipForm : Form
     public void SetTooltipText(string text)
     {
         this.label.Text = text;
+        // this will adjust the width of the tooltip box to accomodate for the text size
+        this.label.Size = TextRenderer.MeasureText(this.label.Text, this.label.Font);
+        this.ClientSize = new Size(this.label.Width + 20, this.label.Height + 20); // Add some padding
+
     }
 }

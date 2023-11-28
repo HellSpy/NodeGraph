@@ -3,17 +3,22 @@ using Microsoft.Msagl.Drawing;
 using System.Collections.Generic;
 using System.Linq;
 using System;
-using Microsoft.Msagl.Layout.Layered;
 using Microsoft.Msagl.Layout.MDS;
+using System.Threading.Tasks;
+using System.Collections.Concurrent;
+using Microsoft.Msagl.Core.Routing;
 
 public class WebGraph
 {
     private readonly HtmlWeb web;
     public WebNode RootNode { get; private set; }
+    public HashSet<string> VisitedDomains { get; private set; }
+
 
     public WebGraph()
     {
         web = new HtmlWeb();
+        VisitedDomains = new HashSet<string>();
     }
 
     public void BuildGraph(string rootUrl)
@@ -23,35 +28,72 @@ public class WebGraph
         FetchLinks(RootNode, visitedDomains);
     }
 
+    // added parallel processessing
     public void FetchLinks(WebNode node, HashSet<string> visitedDomains)
     {
         try
         {
+            // load the document from the URL
             var doc = web.Load(node.Url);
+            var links = doc.DocumentNode.SelectNodes("//a[@href]"); // select all hyperlink elements
 
-            // Adding a null check for the SelectNodes result
-            var links = doc.DocumentNode.SelectNodes("//a[@href]");
             if (links != null)
             {
-                foreach (var link in links)
+                var hrefValues = links.Select(link => link.GetAttributeValue("href", string.Empty)) // extract hrefs and filter out empty and non-http links
+                                      .Where(href => !string.IsNullOrEmpty(href) && href.StartsWith("http"))
+                                      .ToList(); // Ensure that the collection is not modified during enumeration
+
+                var newNodes = new ConcurrentBag<WebNode>(); // Thread-safe collection for new nodes
+
+                // process links in parlalel
+                Parallel.ForEach(hrefValues, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount }, hrefValue =>
                 {
-                    var hrefValue = link.GetAttributeValue("href", string.Empty);
-                    if (!string.IsNullOrEmpty(hrefValue) && hrefValue.StartsWith("http"))
+                    try
                     {
                         var domain = new Uri(hrefValue).Host;
                         if (!visitedDomains.Contains(domain))
                         {
-                            visitedDomains.Add(domain);
-
-                            if (!node.LinkedNodes.Any(n => n.Url == hrefValue))
+                            lock (visitedDomains)
                             {
-                                var newNode = new WebNode(hrefValue);
-                                node.LinkedNodes.Add(newNode);
-                                // FetchLinks(newNode, visitedDomains); // Uncomment for recursive fetching
+                                visitedDomains.Add(domain); // add new domain to visited list
+                            }
+
+                            var alreadyExists = false;
+                            lock (node.LinkedNodes)
+                            {
+                                alreadyExists = node.LinkedNodes.Any(n => n.Url == hrefValue); // check if node already exists
+                            }
+
+                            if (!alreadyExists)
+                            {
+                                newNodes.Add(new WebNode(hrefValue)); // add new node to collection
                             }
                         }
                     }
+                    catch (Exception innerEx)
+                    {
+                        Console.WriteLine("Error processing link: " + hrefValue + "\n" + innerEx.Message);
+                    }
+                });
+
+                // Add the new nodes after the parallel processing
+                foreach (var newNode in newNodes)
+                {
+                    lock (node.LinkedNodes)
+                    {
+                        node.LinkedNodes.Add(newNode);
+                    }
                 }
+
+                /* Uncomment this section for recursive link fetching
+                foreach (var newNode in newNodes)
+                {
+                    if (!visitedDomains.Contains(newNode.Url))
+                    {
+                        FetchLinks(newNode, visitedDomains);
+                    }
+                }
+                */
             }
         }
         catch (Exception ex)
@@ -65,6 +107,13 @@ public class WebGraph
     {
         var graph = new Graph("webgraph");
 
+
+        // edge routing seetings that are applied to MDS Layout
+        var edgeRouting = new EdgeRoutingSettings
+        {
+            EdgeRoutingMode = EdgeRoutingMode.SplineBundling
+        };
+
         // use MDS layout settings
         var mdsLayout = new MdsLayoutSettings
         {
@@ -73,6 +122,7 @@ public class WebGraph
             // ScaleY = 1.0, // Set Y scaling
             // PackingAspectRatio = 1.0, // Set packing aspect ratio
             // PivotNumber = 50 // Set the number of pivots
+            EdgeRoutingSettings = edgeRouting
         };
 
         graph.LayoutAlgorithmSettings = mdsLayout;
