@@ -72,6 +72,7 @@ public class FormVisualizer : Form
 
         viewer.MouseMove += Viewer_MouseMove;
         viewer.MouseDoubleClick += Viewer_MouseDoubleClick; // Changed to MouseDoubleClick so that you can double click duh
+        viewer.MouseLeave += Viewer_MouseLeave; // remove tooltip when mouse leaves
         Controls.Add(viewer);
     }
 
@@ -128,6 +129,11 @@ public class FormVisualizer : Form
             Console.WriteLine("Invalid URL or not a DNode: " + ((clickedObject as DNode)?.Node.Id ?? "None"));
         }
     }
+    private void Viewer_MouseLeave(object sender, EventArgs e)
+    {
+        customTooltip.Hide();
+    }
+
     // i gave up so we will rebuild the entire graph with each update, which is going to cost more resources
     private void UpdateGraph(WebNode node)
     {
