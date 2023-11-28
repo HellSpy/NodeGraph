@@ -29,6 +29,7 @@ public class FormVisualizer : Form
     {
 
         // Create a menu strip (new toolbar) comment out this entire code if you want the default toolbar back.
+        // Move this code downwards to the bottom of the formvisualizer if you want the default toolbar and this menu to exist.
         var menuStrip = new MenuStrip();
         var fileMenuItem = new ToolStripMenuItem("File");
         var addUrlMenuItem = new ToolStripMenuItem("Add URL");
