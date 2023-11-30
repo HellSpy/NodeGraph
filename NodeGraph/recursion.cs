@@ -106,6 +106,17 @@ public class RecursionForm : Form
 
     private void UpdateViewerGraph(WebNode node)
     {
+        // Restyle the current node to ensure it retains its styling
+        if (!viewer.Graph.NodeMap.ContainsKey(node.Url))
+        {
+            WebGraph.StyleNode(node.Url, viewer.Graph);
+            // Add the node to nodeUrlMap if not already present
+            if (!nodeUrlMap.ContainsKey(node.Url))
+            {
+                nodeUrlMap[node.Url] = node.Url; // Or whatever value you want for the tooltip
+            }
+        }
+
         foreach (var linkedNode in node.LinkedNodes)
         {
             if (!viewer.Graph.NodeMap.ContainsKey(linkedNode.Url))
@@ -126,6 +137,7 @@ public class RecursionForm : Form
             }
         }
     }
+
 
     private void RefreshViewerGraph()
     {
