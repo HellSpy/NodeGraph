@@ -114,22 +114,28 @@ public class FormVisualizer : Form
     {
         Console.WriteLine("Generating graph...");
 
-        // Dictionary to hold the count of linked nodes for each node URL
         var linkedNodeCounts = new Dictionary<string, int>();
 
-        // Initialize the linked node counts
+        // Initialize counts for existing nodes
         foreach (var n in viewer.Graph.Nodes)
         {
             linkedNodeCounts[n.Id] = 0;
         }
 
-        // Add the new nodes and edges to the existing graph
+        // Recalculate counts based on existing edges
+        foreach (var e in viewer.Graph.Edges)
+        {
+            linkedNodeCounts[e.Source]++;
+            linkedNodeCounts[e.Target]++;
+        }
+
+        // Add the new nodes and edges
         foreach (var linkedNode in node.LinkedNodes)
         {
             if (!viewer.Graph.NodeMap.ContainsKey(linkedNode.Url))
             {
                 // Initialize the count for new nodes
-                linkedNodeCounts[linkedNode.Url] = 0;
+                linkedNodeCounts[linkedNode.Url] = 1; // As it's a new node, start with 1
 
                 // Create a directed edge
                 var edge = viewer.Graph.AddEdge(node.Url, linkedNode.Url);
@@ -138,24 +144,18 @@ public class FormVisualizer : Form
 
                 // Increment linked node counts for both nodes in the edge
                 linkedNodeCounts[node.Url]++;
-                linkedNodeCounts[linkedNode.Url]++;
-
-                // Add nodes to the nodeUrlMap for tooltips
-                if (!nodeUrlMap.ContainsKey(linkedNode.Url))
-                {
-                    nodeUrlMap[linkedNode.Url] = linkedNode.Url;
-                }
             }
         }
 
-        // Copying nodes and edges to a new graph instance with applied MDS layout
         var newGraph = new Graph();
-        foreach (var n in viewer.Graph.Nodes)
+
+        // Apply styling to all nodes with updated linkedNodeCounts
+        foreach (var nodeId in linkedNodeCounts.Keys)
         {
-            // Apply styling while copying nodes with the correct linkedNodeCount
-            var newNode = WebGraph.StyleNode(n.Id, newGraph, linkedNodeCounts[n.Id]);
+            WebGraph.StyleNode(nodeId, newGraph, linkedNodeCounts[nodeId]);
         }
 
+        // Copy the edges to the new graph
         foreach (var e in viewer.Graph.Edges)
         {
             var newEdge = newGraph.AddEdge(e.Source, e.Target);
@@ -175,6 +175,11 @@ public class FormVisualizer : Form
             EdgeRoutingSettings = edgeRouting
         };
 
+        nodeUrlMap.Clear(); // this is to fix the tooltip
+        foreach (var n in newGraph.Nodes)
+        {
+            nodeUrlMap[n.Id] = n.Id;
+        }
 
         newGraph.LayoutAlgorithmSettings = mdsLayout;
 
