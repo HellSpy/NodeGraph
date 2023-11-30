@@ -10,6 +10,11 @@ public class CustomTooltipForm : Form
         InitializeComponent();
     }
 
+    protected override bool ShowWithoutActivation
+    {
+        get { return true; } // Prevent the tooltip form from taking focus
+    }
+
     private void InitializeComponent()
     {
         this.label = new Label();

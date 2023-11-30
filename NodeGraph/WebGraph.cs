@@ -12,10 +12,13 @@ public class WebGraph
 {
     private readonly HtmlWeb web;
     public WebNode RootNode { get; private set; }
+    public HashSet<string> VisitedDomains { get; private set; }
+
 
     public WebGraph()
     {
         web = new HtmlWeb();
+        VisitedDomains = new HashSet<string>();
     }
 
     public void BuildGraph(string rootUrl)
@@ -105,7 +108,7 @@ public class WebGraph
         var graph = new Graph("webgraph");
 
 
-        //edge routing settings (which is applied to MdsLayout)
+        // edge routing seetings that are applied to MDS Layout
         var edgeRouting = new EdgeRoutingSettings
         {
             EdgeRoutingMode = EdgeRoutingMode.SplineBundling
