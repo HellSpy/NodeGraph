@@ -50,7 +50,7 @@ public class RecursionForm : Form
         {
             Location = new System.Drawing.Point(150, 10),
             Minimum = 1,
-            Maximum = 10,
+            Maximum = 100,
             Value = 1
         };
 
