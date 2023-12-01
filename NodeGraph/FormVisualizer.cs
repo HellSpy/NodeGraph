@@ -161,14 +161,27 @@ public class FormVisualizer : Form
             {
                 // Initialize the count for new nodes
                 linkedNodeCounts[linkedNode.Url] = 1; // As it's a new node, start with 1
-
+                
                 // Create a directed edge
                 var edge = viewer.Graph.AddEdge(node.Url, linkedNode.Url);
                 edge.Attr.Color = Microsoft.Msagl.Drawing.Color.Black;
                 edge.Attr.ArrowheadAtTarget = ArrowStyle.Normal;
 
-                // Increment linked node counts for both nodes in the edge
-                linkedNodeCounts[node.Url]++;
+                // Style the new node immediately
+                WebGraph.StyleNode(linkedNode.Url, viewer.Graph, linkedNodeCounts[linkedNode.Url]);
+            }
+            else
+            {
+                // Check if the key exists before incrementing
+                if (linkedNodeCounts.ContainsKey(node.Url))
+                {
+                    linkedNodeCounts[node.Url]++;
+                }
+                else
+                {
+                    // If the key doesn't exist, initialize it with a count of 1
+                    linkedNodeCounts[node.Url] = 0;
+                }
             }
         }
 
