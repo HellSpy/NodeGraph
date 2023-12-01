@@ -4,7 +4,9 @@ using Microsoft.Msagl.GraphViewerGdi;
 using Microsoft.Msagl.Layout.MDS;
 using System;
 using System.Collections.Generic;
+using System.Security.Policy;
 using System.Windows.Forms;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.TreeView;
 
 public class RecursionForm : Form
 {
@@ -164,10 +166,29 @@ public class RecursionForm : Form
 
     private void RefreshViewerGraph()
     {
+        var linkedNodeCounts = CalculateLinkedNodeCounts();
+
+        // Reapply styles to nodes based on the new data
+        foreach (var node in viewer.Graph.Nodes)
+        {
+            ReapplyStylesToNode(node, linkedNodeCounts[node.Id]);
+        }
+
         // Refresh the viewer's graph
-        viewer.Graph = viewer.Graph; // THIS IS HOW THE GRAPH IS REFRESHED, BY REASSIGNING THE SAME GRAPH
+        viewer.Graph = viewer.Graph;
         viewer.NeedToCalculateLayout = true;
         viewer.Invalidate();
         viewer.Refresh();
+    }
+    private void ReapplyStylesToNode(Node node, int linkedNodeCount)
+    {
+        // Calculate the color based on the number of linked nodes
+        int maxLinkedNodes = 10; // Adjust this based on your needs
+        double intensity = Math.Min(linkedNodeCount / (double)maxLinkedNodes, 1.0);
+        byte blueShade = (byte)(255 * intensity); // Ensure blueShade is a byte
+
+        node.Attr.FillColor = new Color(0, 0, blueShade); // Darker blue for more connections
+        node.Label.FontSize = 8; // Adjust the font size as needed
+        node.Label.FontColor = Color.White;
     }
 }
