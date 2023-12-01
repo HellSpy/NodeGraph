@@ -167,12 +167,7 @@ public class FormVisualizer : Form
                 edge.Attr.Color = Microsoft.Msagl.Drawing.Color.Black;
                 edge.Attr.ArrowheadAtTarget = ArrowStyle.Normal;
 
-                // Style the new node immediately
-                WebGraph.StyleNode(linkedNode.Url, viewer.Graph, linkedNodeCounts[linkedNode.Url]);
-            }
-            else
-            {
-                // Check if the key exists before incrementing
+                // Increment linked node counts for the current node (if it exists in the dictionary)
                 if (linkedNodeCounts.ContainsKey(node.Url))
                 {
                     linkedNodeCounts[node.Url]++;
@@ -180,7 +175,7 @@ public class FormVisualizer : Form
                 else
                 {
                     // If the key doesn't exist, initialize it with a count of 1
-                    linkedNodeCounts[node.Url] = 0;
+                    linkedNodeCounts[node.Url] = 1;
                 }
             }
         }
