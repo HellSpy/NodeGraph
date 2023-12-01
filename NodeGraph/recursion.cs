@@ -5,6 +5,7 @@ using Microsoft.Msagl.Layout.MDS;
 using System;
 using System.Collections.Generic;
 using System.Security.Policy;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.TreeView;
 
@@ -16,6 +17,9 @@ public class RecursionForm : Form
     private WebGraph webGraph;
     private GViewer viewer; // Add GViewer field
     private Dictionary<string, string> nodeUrlMap; // Add Dictionary field
+
+    private Button stopButton; // New stop button
+    private bool stopRecursion = false; // Flag to control recursion
 
     public RecursionForm(WebGraph webGraph, GViewer viewer, Dictionary<string, string> nodeUrlMap)
     {
@@ -58,22 +62,36 @@ public class RecursionForm : Form
         };
         fetchButton.Click += FetchButton_Click;
 
+        stopButton = new Button
+        {
+            Text = "Stop Recursion",
+            Location = new System.Drawing.Point(120, 40),
+            Size = new System.Drawing.Size(100, 30)
+        };
+        stopButton.Click += StopButton_Click;
+
         Controls.Add(label);
         Controls.Add(depthNumericUpDown);
         Controls.Add(fetchButton);
+        Controls.Add(stopButton);
 
         Text = "Recursion Depth";
         Size = new System.Drawing.Size(300, 120);
     }
 
-    private void FetchButton_Click(object sender, EventArgs e)
+    private void StopButton_Click(object sender, EventArgs e)
+    {
+        stopRecursion = true; // Set the flag to true to stop recursion
+    }
+
+    private async void FetchButton_Click(object sender, EventArgs e)
     {
         int depth = (int)depthNumericUpDown.Value;
 
         if (depth > 0)
         {
             // Fetch links recursively up to the specified depth
-            FetchLinksRecursively(webGraph.RootNode, depth);
+            await Task.Run(() => FetchLinksRecursively(webGraph.RootNode, depth));
         }
 
         // Add a message to indicate that the entire recursion is done
@@ -85,7 +103,7 @@ public class RecursionForm : Form
 
     private void FetchLinksRecursively(WebNode node, int depth)
     {
-        if (depth == 0)
+        if (stopRecursion || depth == 0)
         {
             Console.WriteLine("Reached recursion depth limit.");
             RefreshViewerGraph();
@@ -99,6 +117,13 @@ public class RecursionForm : Form
 
         foreach (var linkedNode in node.LinkedNodes)
         {
+            // Check again for stop condition or depth limit before making a recursive call
+            if (stopRecursion || depth <= 1)
+            {
+                Console.WriteLine("Stopping recursion early due to stop condition or depth limit.");
+                break;
+            }
+
             Console.WriteLine("Recursing into: " + linkedNode.Url);
             FetchLinksRecursively(linkedNode, depth - 1);
         }
