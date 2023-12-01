@@ -207,13 +207,49 @@ public class RecursionForm : Form
     }
     private void ReapplyStylesToNode(Node node, int linkedNodeCount)
     {
-        // Calculate the color based on the number of linked nodes
-        int maxLinkedNodes = 10; // Adjust this based on your needs
-        double intensity = Math.Min(linkedNodeCount / (double)maxLinkedNodes, 1.0);
-        byte blueShade = (byte)(255 * intensity); // Ensure blueShade is a byte
+        byte redShade = 0, greenShade = 0, blueShade = 0;
 
-        node.Attr.FillColor = new Color(0, 0, blueShade); // Darker blue for more connections
-        node.Label.FontSize = 8; // Adjust the font size as needed
+        // Define the thresholds
+        const int maxLinkedNodesBlue = 10;
+        const int maxLinkedNodesGreen = 21;
+        const int maxLinkedNodesRed = 32;
+        const int maxLinkedNodesPurple = 43;
+
+        if (linkedNodeCount <= maxLinkedNodesBlue)
+        {
+            // Blue intensity for up to 10 linked nodes
+            blueShade = (byte)(255 * Math.Min(linkedNodeCount / (double)maxLinkedNodesBlue, 1.0));
+        }
+        else if (linkedNodeCount <= maxLinkedNodesGreen)
+        {
+            // Green intensity for 11-21 linked nodes
+            greenShade = (byte)(255 * Math.Min((linkedNodeCount - maxLinkedNodesBlue) / (double)(maxLinkedNodesGreen - maxLinkedNodesBlue), 1.0));
+            blueShade = (byte)(255 - greenShade);
+        }
+        else if (linkedNodeCount <= maxLinkedNodesRed)
+        {
+            // Red intensity for 22-32 linked nodes
+            redShade = (byte)(255 * Math.Min((linkedNodeCount - maxLinkedNodesGreen) / (double)(maxLinkedNodesRed - maxLinkedNodesGreen), 1.0));
+            greenShade = (byte)(255 - redShade);
+        }
+        else if (linkedNodeCount <= maxLinkedNodesPurple)
+        {
+            // Purple intensity for 33-43 linked nodes
+            redShade = (byte)(255 * Math.Min((linkedNodeCount - maxLinkedNodesRed) / (double)(maxLinkedNodesPurple - maxLinkedNodesRed), 1.0));
+            blueShade = (byte)(255 - redShade); // Making purple by combining red and blue
+        }
+        else
+        {
+            // Purple color for more than 43 linked nodes
+            // This can be adjusted as needed
+                redShade = 255;
+                greenShade = 0;
+                blueShade = 255;  
+        }
+
+        node.Attr.FillColor = new Color(redShade, greenShade, blueShade); // apply the gradient coloring
+
+        node.Label.FontSize = 8; // add + linkedNodeCount to increase font size based on linkedNodeCount
         node.Label.FontColor = Color.White;
     }
 }
