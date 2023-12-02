@@ -139,40 +139,62 @@ public class FormVisualizer : Form
     {
         Console.WriteLine("Generating graph...");
 
-        // add new nodes and edges to the existing graph
+        var linkedNodeCounts = new Dictionary<string, int>();
+
+        // Initialize counts for existing nodes
+        foreach (var n in viewer.Graph.Nodes)
+        {
+            linkedNodeCounts[n.Id] = 0;
+        }
+
+        // Recalculate counts based on existing edges
+        foreach (var e in viewer.Graph.Edges)
+        {
+            linkedNodeCounts[e.Source]++;
+            linkedNodeCounts[e.Target]++;
+        }
+
+        // Add the new nodes and edges
         foreach (var linkedNode in node.LinkedNodes)
         {
             if (!viewer.Graph.NodeMap.ContainsKey(linkedNode.Url))
             {
-                // Use StyleNode for styling linked nodes
-                WebGraph.StyleNode(linkedNode.Url, viewer.Graph);
-
+                // Initialize the count for new nodes
+                linkedNodeCounts[linkedNode.Url] = 1; // As it's a new node, start with 1
+                
                 // Create a directed edge
                 var edge = viewer.Graph.AddEdge(node.Url, linkedNode.Url);
                 edge.Attr.Color = Microsoft.Msagl.Drawing.Color.Black;
                 edge.Attr.ArrowheadAtTarget = ArrowStyle.Normal;
 
-                // Add nodes to the nodeUrlMap so that that tooltip function can work
-                if (!nodeUrlMap.ContainsKey(linkedNode.Url))
+                // Increment linked node counts for the current node (if it exists in the dictionary)
+                if (linkedNodeCounts.ContainsKey(node.Url))
                 {
-                    nodeUrlMap[linkedNode.Url] = linkedNode.Url; // Or whatever value you want for the tooltip
+                    linkedNodeCounts[node.Url]++;
+                }
+                else
+                {
+                    // If the key doesn't exist, initialize it with a count of 1
+                    linkedNodeCounts[node.Url] = 1;
                 }
             }
         }
 
-        // Copying nodes and edges to a new graph instance with applied MDS layout
         var newGraph = new Graph();
-        foreach (var n in viewer.Graph.Nodes)
+
+        // Apply styling to all nodes with updated linkedNodeCounts
+        foreach (var nodeId in linkedNodeCounts.Keys)
         {
-            var newNode = WebGraph.StyleNode(n.Id, newGraph); // Apply styling while copying nodes
+            WebGraph.StyleNode(nodeId, newGraph, linkedNodeCounts[nodeId]);
         }
+
+        // Copy the edges to the new graph
         foreach (var e in viewer.Graph.Edges)
         {
             var newEdge = newGraph.AddEdge(e.Source, e.Target);
             newEdge.Attr.Color = e.Attr.Color;
             newEdge.Attr.ArrowheadAtTarget = e.Attr.ArrowheadAtTarget;
         }
-
 
         // edge routing seetings that are applied to MDS Layout
         var edgeRouting = new EdgeRoutingSettings
@@ -183,13 +205,14 @@ public class FormVisualizer : Form
         // Apply MDS layout settings
         var mdsLayout = new MdsLayoutSettings
         {
-            // RemoveOverlaps = true, // Enable overlap removal
-            // ScaleX = 1.0, // Set X scaling
-            // ScaleY = 1.0, // Set Y scaling
-            // PackingAspectRatio = 1.0, // Set packing aspect ratio
-            // PivotNumber = 50 // Set the number of pivots
             EdgeRoutingSettings = edgeRouting
         };
+
+        nodeUrlMap.Clear(); // this is to fix the tooltip
+        foreach (var n in newGraph.Nodes)
+        {
+            nodeUrlMap[n.Id] = n.Id;
+        }
 
         newGraph.LayoutAlgorithmSettings = mdsLayout;
 

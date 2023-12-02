@@ -4,7 +4,9 @@ using Microsoft.Msagl.GraphViewerGdi;
 using Microsoft.Msagl.Layout.MDS;
 using System;
 using System.Collections.Generic;
+using System.Security.Policy;
 using System.Windows.Forms;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.TreeView;
 
 public class RecursionForm : Form
 {
@@ -86,15 +88,13 @@ public class RecursionForm : Form
         if (depth == 0)
         {
             Console.WriteLine("Reached recursion depth limit.");
-            RefreshViewerGraph(); // Refresh the viewer's graph when recursion is done
+            RefreshViewerGraph();
             return;
         }
 
         Console.WriteLine("Fetching links for: " + node.Url);
 
         webGraph.FetchLinks(node, webGraph.VisitedDomains);
-
-        // Update the viewer's graph with the newly fetched links
         UpdateViewerGraph(node);
 
         foreach (var linkedNode in node.LinkedNodes)
@@ -106,14 +106,17 @@ public class RecursionForm : Form
 
     private void UpdateViewerGraph(WebNode node)
     {
-        // Restyle the current node to ensure it retains its styling
+        var linkedNodeCounts = CalculateLinkedNodeCounts();
+
+        // Restyle and add the current node if not already present
         if (!viewer.Graph.NodeMap.ContainsKey(node.Url))
         {
-            WebGraph.StyleNode(node.Url, viewer.Graph);
-            // Add the node to nodeUrlMap if not already present
+            // Ensure the node is in the linkedNodeCounts dictionary
+            int count = linkedNodeCounts.ContainsKey(node.Url) ? linkedNodeCounts[node.Url] : 0;
+            WebGraph.StyleNode(node.Url, viewer.Graph, count);
             if (!nodeUrlMap.ContainsKey(node.Url))
             {
-                nodeUrlMap[node.Url] = node.Url; // Or whatever value you want for the tooltip
+                nodeUrlMap[node.Url] = node.Url;
             }
         }
 
@@ -121,30 +124,71 @@ public class RecursionForm : Form
         {
             if (!viewer.Graph.NodeMap.ContainsKey(linkedNode.Url))
             {
-                // Use StyleNode for styling linked nodes
-                WebGraph.StyleNode(linkedNode.Url, viewer.Graph);
+                // Ensure the linkedNode is in the linkedNodeCounts dictionary
+                int linkedCount = linkedNodeCounts.ContainsKey(linkedNode.Url) ? linkedNodeCounts[linkedNode.Url] : 0;
+                WebGraph.StyleNode(linkedNode.Url, viewer.Graph, linkedCount);
 
                 // Create a directed edge
                 var edge = viewer.Graph.AddEdge(node.Url, linkedNode.Url);
                 edge.Attr.Color = Microsoft.Msagl.Drawing.Color.Black;
                 edge.Attr.ArrowheadAtTarget = ArrowStyle.Normal;
 
-                // Add nodes to the nodeUrlMap so that the tooltip function can work
                 if (!nodeUrlMap.ContainsKey(linkedNode.Url))
                 {
-                    nodeUrlMap[linkedNode.Url] = linkedNode.Url; // Or whatever value you want for the tooltip
+                    nodeUrlMap[linkedNode.Url] = linkedNode.Url;
                 }
             }
         }
     }
 
 
+    private Dictionary<string, int> CalculateLinkedNodeCounts()
+    {
+        var linkedNodeCounts = new Dictionary<string, int>();
+
+        // Initialize counts for all nodes
+        foreach (var n in viewer.Graph.Nodes)
+        {
+            linkedNodeCounts[n.Id] = 0;
+        }
+
+        // Increment counts based on existing edges
+        foreach (var e in viewer.Graph.Edges)
+        {
+            if (linkedNodeCounts.ContainsKey(e.Source))
+                linkedNodeCounts[e.Source]++;
+            if (linkedNodeCounts.ContainsKey(e.Target))
+                linkedNodeCounts[e.Target]++;
+        }
+
+        return linkedNodeCounts;
+    }
+
     private void RefreshViewerGraph()
     {
+        var linkedNodeCounts = CalculateLinkedNodeCounts();
+
+        // Reapply styles to nodes based on the new data
+        foreach (var node in viewer.Graph.Nodes)
+        {
+            ReapplyStylesToNode(node, linkedNodeCounts[node.Id]);
+        }
+
         // Refresh the viewer's graph
-        viewer.Graph = viewer.Graph; // THIS IS HOW THE GRAPH IS REFRESHED, BY REASSIGNING THE SAME GRAPH
+        viewer.Graph = viewer.Graph;
         viewer.NeedToCalculateLayout = true;
         viewer.Invalidate();
         viewer.Refresh();
+    }
+    private void ReapplyStylesToNode(Node node, int linkedNodeCount)
+    {
+        // Calculate the color based on the number of linked nodes
+        int maxLinkedNodes = 10; // Adjust this based on your needs
+        double intensity = Math.Min(linkedNodeCount / (double)maxLinkedNodes, 1.0);
+        byte blueShade = (byte)(255 * intensity); // Ensure blueShade is a byte
+
+        node.Attr.FillColor = new Color(0, 0, blueShade); // Darker blue for more connections
+        node.Label.FontSize = 8; // Adjust the font size as needed
+        node.Label.FontColor = Color.White;
     }
 }
