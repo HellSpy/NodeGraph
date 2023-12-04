@@ -5,6 +5,7 @@ using Microsoft.Msagl.Layout.MDS;
 using System;
 using System.Collections.Generic;
 using System.Security.Policy;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.TreeView;
 
@@ -16,6 +17,9 @@ public class RecursionForm : Form
     private WebGraph webGraph;
     private GViewer viewer; // Add GViewer field
     private Dictionary<string, string> nodeUrlMap; // Add Dictionary field
+
+    private Button stopButton; // New stop button
+    private bool stopRecursion = false; // Flag to control recursion
 
     public RecursionForm(WebGraph webGraph, GViewer viewer, Dictionary<string, string> nodeUrlMap)
     {
@@ -46,7 +50,7 @@ public class RecursionForm : Form
         {
             Location = new System.Drawing.Point(150, 10),
             Minimum = 1,
-            Maximum = 10,
+            Maximum = 100,
             Value = 1
         };
 
@@ -58,22 +62,36 @@ public class RecursionForm : Form
         };
         fetchButton.Click += FetchButton_Click;
 
+        stopButton = new Button
+        {
+            Text = "Stop Recursion",
+            Location = new System.Drawing.Point(120, 40),
+            Size = new System.Drawing.Size(100, 30)
+        };
+        stopButton.Click += StopButton_Click;
+
         Controls.Add(label);
         Controls.Add(depthNumericUpDown);
         Controls.Add(fetchButton);
+        Controls.Add(stopButton);
 
         Text = "Recursion Depth";
         Size = new System.Drawing.Size(300, 120);
     }
 
-    private void FetchButton_Click(object sender, EventArgs e)
+    private void StopButton_Click(object sender, EventArgs e)
+    {
+        stopRecursion = true; // Set the flag to true to stop recursion
+    }
+
+    private async void FetchButton_Click(object sender, EventArgs e)
     {
         int depth = (int)depthNumericUpDown.Value;
 
         if (depth > 0)
         {
             // Fetch links recursively up to the specified depth
-            FetchLinksRecursively(webGraph.RootNode, depth);
+            await Task.Run(() => FetchLinksRecursively(webGraph.RootNode, depth));
         }
 
         // Add a message to indicate that the entire recursion is done
@@ -85,7 +103,7 @@ public class RecursionForm : Form
 
     private void FetchLinksRecursively(WebNode node, int depth)
     {
-        if (depth == 0)
+        if (stopRecursion || depth == 0)
         {
             Console.WriteLine("Reached recursion depth limit.");
             RefreshViewerGraph();
@@ -99,6 +117,13 @@ public class RecursionForm : Form
 
         foreach (var linkedNode in node.LinkedNodes)
         {
+            // Check again for stop condition or depth limit before making a recursive call
+            if (stopRecursion || depth <= 1)
+            {
+                Console.WriteLine("Stopping recursion early due to stop condition or depth limit.");
+                break;
+            }
+
             Console.WriteLine("Recursing into: " + linkedNode.Url);
             FetchLinksRecursively(linkedNode, depth - 1);
         }
@@ -182,13 +207,49 @@ public class RecursionForm : Form
     }
     private void ReapplyStylesToNode(Node node, int linkedNodeCount)
     {
-        // Calculate the color based on the number of linked nodes
-        int maxLinkedNodes = 10; // Adjust this based on your needs
-        double intensity = Math.Min(linkedNodeCount / (double)maxLinkedNodes, 1.0);
-        byte blueShade = (byte)(255 * intensity); // Ensure blueShade is a byte
+        byte redShade = 0, greenShade = 0, blueShade = 0;
 
-        node.Attr.FillColor = new Color(0, 0, blueShade); // Darker blue for more connections
-        node.Label.FontSize = 8; // Adjust the font size as needed
+        // Define the thresholds
+        const int maxLinkedNodesBlue = 10;
+        const int maxLinkedNodesGreen = 21;
+        const int maxLinkedNodesRed = 32;
+        const int maxLinkedNodesPurple = 43;
+
+        if (linkedNodeCount <= maxLinkedNodesBlue)
+        {
+            // Blue intensity for up to 10 linked nodes
+            blueShade = (byte)(255 * Math.Min(linkedNodeCount / (double)maxLinkedNodesBlue, 1.0));
+        }
+        else if (linkedNodeCount <= maxLinkedNodesGreen)
+        {
+            // Green intensity for 11-21 linked nodes
+            greenShade = (byte)(255 * Math.Min((linkedNodeCount - maxLinkedNodesBlue) / (double)(maxLinkedNodesGreen - maxLinkedNodesBlue), 1.0));
+            blueShade = (byte)(255 - greenShade);
+        }
+        else if (linkedNodeCount <= maxLinkedNodesRed)
+        {
+            // Red intensity for 22-32 linked nodes
+            redShade = (byte)(255 * Math.Min((linkedNodeCount - maxLinkedNodesGreen) / (double)(maxLinkedNodesRed - maxLinkedNodesGreen), 1.0));
+            greenShade = (byte)(255 - redShade);
+        }
+        else if (linkedNodeCount <= maxLinkedNodesPurple)
+        {
+            // Purple intensity for 33-43 linked nodes
+            redShade = (byte)(255 * Math.Min((linkedNodeCount - maxLinkedNodesRed) / (double)(maxLinkedNodesPurple - maxLinkedNodesRed), 1.0));
+            blueShade = (byte)(255 - redShade); // Making purple by combining red and blue
+        }
+        else
+        {
+            // Purple color for more than 43 linked nodes
+            // This can be adjusted as needed
+                redShade = 255;
+                greenShade = 0;
+                blueShade = 255;  
+        }
+
+        node.Attr.FillColor = new Color(redShade, greenShade, blueShade); // apply the gradient coloring
+
+        node.Label.FontSize = 8; // add + linkedNodeCount to increase font size based on linkedNodeCount
         node.Label.FontColor = Color.White;
     }
 }
