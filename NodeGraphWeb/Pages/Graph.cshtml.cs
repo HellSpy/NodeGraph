@@ -9,7 +9,7 @@ namespace NodeGraphWeb.Pages
     {
         private readonly GraphService _graphService;
 
-        public Graph? GraphData { get; private set; } // Make it nullable
+        public string? GraphJsonData { get; private set; }
 
         public GraphModel(GraphService graphService)
         {
@@ -18,7 +18,8 @@ namespace NodeGraphWeb.Pages
 
         public void OnGet()
         {
-            GraphData = _graphService.BuildGraph("https://github.com");
+            var graph = _graphService.BuildGraph("https://github.com");
+            GraphJsonData = _graphService.ConvertGraphToJson(graph);
         }
     }
 }
