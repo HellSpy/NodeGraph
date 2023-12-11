@@ -85,8 +85,7 @@ public class WebGraph
                     }
                 }
 
-                /* Uncomment this section for recursive link fetching
-                foreach (var newNode in newNodes)
+                /*foreach (var newNode in newNodes)
                 {
                     if (!visitedDomains.Contains(newNode.Url))
                     {
@@ -117,11 +116,6 @@ public class WebGraph
         // use MDS layout settings
         var mdsLayout = new MdsLayoutSettings
         {
-            // RemoveOverlaps = true, // Enable overlap removal
-            // ScaleX = 1.0, // Set X scaling
-            // ScaleY = 1.0, // Set Y scaling
-            // PackingAspectRatio = 1.0, // Set packing aspect ratio
-            // PivotNumber = 50 // Set the number of pivots
             EdgeRoutingSettings = edgeRouting
         };
 
