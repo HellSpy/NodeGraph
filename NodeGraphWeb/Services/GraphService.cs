@@ -15,7 +15,7 @@ namespace NodeGraphWeb.Services
             WebGraph webGraph = new WebGraph();
             // Use methods from your NodeGraph project
             webGraph.BuildGraph(url);
-            return webGraph.Visualize(); // Assuming this is how you build and visualize the graph
+            return webGraph.Visualize(); // call the visualize function
         }
 
         public string ConvertGraphToJson(Graph graph)
