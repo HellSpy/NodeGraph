@@ -25,12 +25,19 @@ public class WebGraph
     {
         RootNode = new WebNode(rootUrl);
         var visitedDomains = new HashSet<string>();
-        FetchLinks(RootNode, visitedDomains);
+        FetchLinks(RootNode, visitedDomains, 2); // depth limit of 1
     }
 
     // added parallel processessing
-    public void FetchLinks(WebNode node, HashSet<string> visitedDomains)
+    public void FetchLinks(WebNode node, HashSet<string> visitedDomains, int depthLimit)
     {
+        Console.WriteLine($"Fetching links for: {node.Url}, Depth Limit: {depthLimit}");
+
+        if (depthLimit <= 0)
+        {
+            return; // Stop recursion when depth limit is reached
+        }
+
         try
         {
             // load the document from the URL
@@ -85,15 +92,16 @@ public class WebGraph
                     }
                 }
 
-                /* Uncomment this section for recursive link fetching
                 foreach (var newNode in newNodes)
                 {
+                    Console.WriteLine($"Processing new node: {newNode.Url}");
+
                     if (!visitedDomains.Contains(newNode.Url))
                     {
-                        FetchLinks(newNode, visitedDomains);
+                        Console.WriteLine($"Making recursive call for: {newNode.Url}");
+                        FetchLinks(newNode, visitedDomains, depthLimit - 1); // Recursive call with decremented depth limit
                     }
                 }
-                */
             }
         }
         catch (Exception ex)
@@ -126,10 +134,9 @@ public class WebGraph
         };
 
         graph.LayoutAlgorithmSettings = mdsLayout;
+        
 
         AddNodeToGraph(RootNode, graph, new HashSet<string>());
-
-        ApplyClustering(graph);
 
         return graph;
     }
@@ -221,38 +228,4 @@ public class WebGraph
 
         return msaglNode;
     }
-
-
-    private void ApplyClustering(Graph graph)
-    {
-        // Basic clustering logic... (MOSTLY INCOMPLETE)
-        var clusters = new Dictionary<string, Subgraph>();
-
-        foreach (var node in graph.Nodes)
-        {
-            string clusterKey = GetClusterKey(node);
-            if (!clusters.ContainsKey(clusterKey))
-            {
-                var subgraph = new Subgraph(clusterKey);
-                clusters[clusterKey] = subgraph;
-                graph.RootSubgraph.AddSubgraph(subgraph);
-            }
-            clusters[clusterKey].AddNode(node);
-        }
-    }
-    private string GetClusterKey(Node node)
-    {
-        // Using the node's Id (which stores the URL) for clustering logic.
-        // This example clusters by the first letter of the node's Id.
-        // Ensure that the Id is not null or empty to avoid exceptions.
-        if (!string.IsNullOrEmpty(node.Id) && node.Id.Length > 0)
-        {
-            return node.Id.Substring(0, 1).ToUpper(); // Use ToUpper() to standardize the cluster key if needed.
-        }
-        else
-        {
-            return string.Empty; // Or a default cluster key if the Id is not set or is empty.
-        }
-    }
-
 }

@@ -15,6 +15,6 @@ class Program
 
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
-        Application.Run(new FormVisualizer(graph, webGraph));
+        // Application.Run(new FormVisualizer(graph, webGraph)); // Formvisualizer is currently not in use.
     }
 }
