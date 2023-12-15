@@ -25,7 +25,7 @@ public class WebGraph
     {
         RootNode = new WebNode(rootUrl);
         var visitedDomains = new HashSet<string>();
-        FetchLinks(RootNode, visitedDomains, 2); // depth limit of 1
+        FetchLinks(RootNode, visitedDomains, 1); // depth limit of 1
     }
 
     // added parallel processessing
@@ -110,7 +110,6 @@ public class WebGraph
         }
     }
 
-
     public Graph Visualize()
     {
         var graph = new Graph("webgraph");
@@ -125,11 +124,6 @@ public class WebGraph
         // use MDS layout settings
         var mdsLayout = new MdsLayoutSettings
         {
-            // RemoveOverlaps = true, // Enable overlap removal
-            // ScaleX = 1.0, // Set X scaling
-            // ScaleY = 1.0, // Set Y scaling
-            // PackingAspectRatio = 1.0, // Set packing aspect ratio
-            // PivotNumber = 50 // Set the number of pivots
             EdgeRoutingSettings = edgeRouting
         };
 
@@ -158,8 +152,6 @@ public class WebGraph
             // check if the linked node is not already visited
             if (!visitedDomains.Contains(linkedNode.Url))
             {
-                // apply styling to the linked node and add it to the graph
-                StyleNode(linkedNode.Url, graph);
 
                 // create a directed edge from the current node to the linked node
                 var edge = graph.AddEdge(node.Url, linkedNode.Url);
@@ -167,6 +159,9 @@ public class WebGraph
                 // customize the appearance of the edge
                 edge.Attr.Color = Color.Black; // Set the color of the edge
                 edge.Attr.ArrowheadAtTarget = ArrowStyle.Normal; // Set the style of the arrowhead
+
+                // recursively process linked nodes!!!!!!
+                AddNodeToGraph(linkedNode, graph, visitedDomains);
             }
         }
     }
@@ -222,7 +217,7 @@ public class WebGraph
         msaglNode.Attr.FillColor = new Color(redShade, greenShade, blueShade);
 
         msaglNode.Attr.Shape = Shape.Circle;
-        msaglNode.Label.FontSize = 8; // add + linkedNodeCount to increase font size based on linkedNodeCount
+        msaglNode.Label.FontSize = 8 + (linkedNodeCount * 0.5);
         msaglNode.LabelText = uri.Host;
         msaglNode.Label.FontColor = Color.White;
 
