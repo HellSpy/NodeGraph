@@ -7,6 +7,9 @@ using Microsoft.Msagl.Layout.MDS;
 using System.Threading.Tasks;
 using System.Collections.Concurrent;
 using Microsoft.Msagl.Core.Routing;
+using System.Data.SqlClient;
+using System.Text;
+using MySql.Data.MySqlClient;
 
 public class WebGraph
 {
@@ -222,5 +225,79 @@ public class WebGraph
         msaglNode.Label.FontColor = Color.White;
 
         return msaglNode;
+    }
+    public List<(WebNode Source, WebNode Target)> GetAllEdges()
+    {
+        var allEdges = new HashSet<(WebNode, WebNode)>();
+        CollectAllEdges(RootNode, allEdges, new HashSet<WebNode>());
+        return allEdges.ToList();
+    }
+
+    private void CollectAllEdges(WebNode node, HashSet<(WebNode, WebNode)> allEdges, HashSet<WebNode> visited)
+    {
+        if (!visited.Contains(node))
+        {
+            visited.Add(node);
+            foreach (var linkedNode in node.LinkedNodes)
+            {
+                allEdges.Add((node, linkedNode));
+                CollectAllEdges(linkedNode, allEdges, visited);
+            }
+        }
+    }
+
+    public async Task TransferToDatabase(Graph graph)
+    {
+        // Connection string - replace this with a secure method in production
+        string connectionString = "server=193.203.166.22;user=u278723081_Avilin;database=u278723081_NodeGraph;port=3306;password=Csvma!l122mA";
+
+        using (var connection = new MySqlConnection(connectionString))
+        {
+            await connection.OpenAsync();
+
+            // Batch insertion for nodes using the new format
+            var nodeInsertCommand = new StringBuilder("INSERT INTO Nodes (Id, LabelText, Color) VALUES ");
+
+            // Use the new format for nodes
+            var nodes = graph.Nodes.Select(n => new {
+                Id = n.Id,
+                LabelText = n.LabelText,
+                Color = $"#{n.Attr.FillColor.R:X2}{n.Attr.FillColor.G:X2}{n.Attr.FillColor.B:X2}"
+            });
+
+            foreach (var node in nodes)
+            {
+                Console.WriteLine($"Node - ID: {node.Id}, LabelText: {node.LabelText}, Color: {node.Color}");  // Debugging
+                // Append each node's data to the command
+                nodeInsertCommand.Append($"('{MySqlHelper.EscapeString(node.Id)}', '{MySqlHelper.EscapeString(node.LabelText)}', '{node.Color}'),");
+            }
+
+            // Remove the last comma and execute the command
+            nodeInsertCommand.Length--;
+            using (var cmd = new MySqlCommand(nodeInsertCommand.ToString(), connection))
+            {
+                await cmd.ExecuteNonQueryAsync();
+            }
+
+            // Batch insertion for edges
+            var edgeInsertCommand = new StringBuilder("INSERT INTO Edges (sourceId, targetId) VALUES ");
+            foreach (var edge in GetAllEdges())
+            {
+                // Escape special characters to prevent SQL injection
+                var sourceId = MySqlHelper.EscapeString(edge.Source.Url);
+                var targetId = MySqlHelper.EscapeString(edge.Target.Url);
+
+                edgeInsertCommand.Append($"('{sourceId}', '{targetId}'),");
+                Console.WriteLine($"Edge - Source: {edge.Source.Url}, Target: {edge.Target.Url}");  // Debugging
+            }
+            edgeInsertCommand.Length--; // Remove the last comma
+            using (var cmd = new MySqlCommand(edgeInsertCommand.ToString(), connection))
+            {
+                await cmd.ExecuteNonQueryAsync();
+            }
+
+            // Print a success message to the console
+            Console.WriteLine("Transfer to database successful.");
+        }
     }
 }
