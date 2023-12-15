@@ -28,7 +28,7 @@ public class WebGraph
     {
         RootNode = new WebNode(rootUrl);
         var visitedDomains = new HashSet<string>();
-        FetchLinks(RootNode, visitedDomains, 1); // depth limit of 1
+        FetchLinks(RootNode, visitedDomains, 10); // set depth limit here
     }
 
     // added parallel processessing
@@ -256,20 +256,21 @@ public class WebGraph
             await connection.OpenAsync();
 
             // Batch insertion for nodes using the new format
-            var nodeInsertCommand = new StringBuilder("INSERT INTO Nodes (Id, LabelText, Color) VALUES ");
+            var nodeInsertCommand = new StringBuilder("INSERT INTO Nodes (Id, LabelText, Color, Size) VALUES ");
 
             // Use the new format for nodes
             var nodes = graph.Nodes.Select(n => new {
                 Id = n.Id,
                 LabelText = n.LabelText,
-                Color = $"#{n.Attr.FillColor.R:X2}{n.Attr.FillColor.G:X2}{n.Attr.FillColor.B:X2}"
+                Color = $"#{n.Attr.FillColor.R:X2}{n.Attr.FillColor.G:X2}{n.Attr.FillColor.B:X2}",
+                Size = n.Label.FontSize
             });
 
             foreach (var node in nodes)
             {
                 Console.WriteLine($"Node - ID: {node.Id}, LabelText: {node.LabelText}, Color: {node.Color}");  // Debugging
                 // Append each node's data to the command
-                nodeInsertCommand.Append($"('{MySqlHelper.EscapeString(node.Id)}', '{MySqlHelper.EscapeString(node.LabelText)}', '{node.Color}'),");
+                nodeInsertCommand.Append($"('{MySqlHelper.EscapeString(node.Id)}', '{MySqlHelper.EscapeString(node.LabelText)}', '{node.Color}', '{node.Size}'),");
             }
 
             // Remove the last comma and execute the command

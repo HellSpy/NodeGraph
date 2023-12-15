@@ -18,8 +18,8 @@ namespace NodeGraphWeb.Pages
 
         public void OnGet()
         {
-            var graph = _graphService.BuildGraph("https://github.com");
-            GraphJsonData = _graphService.ConvertGraphToJson(graph);
+            // Fetch the graph data in JSON format from the database
+            GraphJsonData = _graphService.GetGraphDataFromDatabase();
         }
     }
 }
