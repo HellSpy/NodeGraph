@@ -7,6 +7,8 @@
 <h1>Graph Visualization</h1>
 
 <div id="graphContainer"></div>
+<div id="tooltip" style="position: absolute; visibility: hidden; background-color: #fff; border: 1px solid #000; padding: 5px; pointer-events: none;"></div>
+
 
 <button id="resetZoom">Reset Zoom</button>
 
@@ -15,6 +17,7 @@
         border: 2px solid black;
         width: 100%;
         height: 700px;
+        position: relative;
     }
 
     h1 {
@@ -32,6 +35,11 @@
         pointer-events: none;
         fill: black;
         font-size: 24px;
+    }
+
+    #tooltip {
+        z-index: 100;
+        position: absolute;
     }
 </style>
 

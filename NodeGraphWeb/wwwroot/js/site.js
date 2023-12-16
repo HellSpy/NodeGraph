@@ -3,244 +3,269 @@
 
 // Write your JavaScript code.
 
-// legend code
-function defineGradient(svg) {
-    const gradient = svg.append("defs")
-        .append("linearGradient")
-        .attr("id", "legendGradient")
-        .attr("x1", "0%")
-        .attr("x2", "100%")
-        .attr("y1", "0%")
-        .attr("y2", "0%");
-
-    // Define the gradient stops
-    gradient.append("stop")
-        .attr("offset", "0%")
-        .attr("stop-color", "blue");
-
-    gradient.append("stop")
-        .attr("offset", "25%")
-        .attr("stop-color", "green");
-
-    gradient.append("stop")
-        .attr("offset", "50%")
-        .attr("stop-color", "red");
-
-    gradient.append("stop")
-        .attr("offset", "75%")
-        .attr("stop-color", "purple");
-
-    gradient.append("stop")
-        .attr("offset", "100%")
-        .attr("stop-color", "pink");
-}
-function createGradientLegend(svg) {
-    const legendWidth = 200; // Width of the gradient bar
-    const legendHeight = 20; // Height of the gradient bar
-    const legendX = 0; // X position of the legend
-    const legendY = 0; // Y position of the legend
-
-    // Container for the legend
-    const legend = svg.append("g")
-        .attr("class", "legend")
-        .attr("transform", `translate(${legendX}, ${legendY})`); // Position at top-left corner
-
-    // White background
-    legend.append("rect")
-        .attr("x", 0)
-        .attr("y", 0)
-        .attr("width", legendWidth + 60) // Extra width for text
-        .attr("height", legendHeight + 40) // Extra height for text and padding
-        .attr("fill", "white");
-
-    // Gradient bar
-    legend.append("rect")
-        .attr("x", 20)
-        .attr("y", 20)
-        .attr("width", legendWidth)
-        .attr("height", legendHeight)
-        .style("fill", "url(#legendGradient)");
-
-    // Text labels for the gradient
-    const textData = [
-        { position: "start", text: "Fewer links" },
-        { position: "end", text: "More links" }
-    ];
-
-    legend.selectAll("text")
-        .data(textData)
-        .enter()
-        .append("text")
-        .attr("x", (d, i) => i === 0 ? 20 : legendWidth + 40)
-        .attr("y", 15)
-        .attr("text-anchor", (d, i) => i === 0 ? "start" : "end")
-        .text(d => d.text);
-}
-
-
 console.log(graphData); // debugging
-
 function renderGraph() {
-
     // Check if graphData is defined
     if (!graphData || !graphData.Nodes || !graphData.Edges) {
         console.error('Graph data is not defined or is missing nodes or edges');
-        return; // Stop the execution of the script if data is not valid
+        return;
     }
 
     const nodes = graphData.Nodes;
     const links = graphData.Edges;
 
-    console.log("Nodes:", nodes);
-    console.log("Links:", links);
+    // Set canvas to take full size of its container
+    const container = d3.select("#graphContainer");
+    const width = container.node().getBoundingClientRect().width;
+    const height = container.node().getBoundingClientRect().height;
 
-    const svg = d3.select("#graphContainer").append("svg")
-        .attr("width", "100%")
-        .attr("height", "100%")
-        .attr("viewBox", "0 0 100% 100%") // centering & view box
-        .attr("preserveAspectRatio", "xMidYMid meet");
+    // Create a canvas element
+    const canvas = container.append("canvas")
+        .attr("width", width)
+        .attr("height", height);
 
-    const g = svg.append("g"); // adding a g element
+    const context = canvas.node().getContext("2d");
+    let transform = d3.zoomIdentity;
 
-    defineGradient(svg); // Define the gradient
-    createGradientLegend(svg); // Create the gradient legend
+    const radius = 100; // Define the desired radius for your nodes
 
-    // zoom function
-    const zoom = d3.zoom()
-        .scaleExtent([0.1, 4]) // Set the minimum and maximum zoom scale
-        .on("zoom", (event) => {
-            g.attr("transform", event.transform); // Apply the zoom transformation
-        });
-
-    svg.call(zoom);
-
-
-    // Define arrowhead markers
-    svg.append("defs").selectAll("marker")
-        .data(["end"]) // Unique identifier for the marker
-        .enter().append("marker")
-        .attr("id", String)
-        .attr("viewBox", "0 -5 10 10")
-        .attr("refX", 15) // adjust this depending on the size of the nodes, should work
-        .attr("refY", 0)
-        .attr("markerWidth", 6)
-        .attr("markerHeight", 6)
-        .attr("orient", "auto")
-        .append("path")
-        .attr("fill", "#999") // Arrow color
-        .attr("d", "M0,-5L10,0L0,5");
-
-    // Create a simulation for positioning nodes
+    // Create a simulation for positioning nodes with adjusted parameters for faster movement
     const simulation = d3.forceSimulation(nodes)
         .force("link", d3.forceLink(links).id(d => d.Id).distance(() => Math.random() * 100 + 70)) // randomly adjust distance
-        .force("charge", d3.forceManyBody().strength(-50)) // you can adjust strength for repulsion
-        .force("center", d3.forceCenter(600, 300)); // centered horizontally on the viewbox.
+        .force("charge", d3.forceManyBody()
+            .strength(d => -30 * (d.Size || 1)) // Adjust strength based on node size
+        )
+        .force("collide", d3.forceCollide()
+            .radius(d => (d.Size)) // dynamic radius based on half of the node's size, plus a buffer of 1
+            .strength(1)) // maximum strength to ensure separation
+        .force("center", d3.forceCenter(width / 2, height / 2))
+        .force("radial", d3.forceRadial(radius, width / 2, height / 2).strength(0.4)) // add the radial force
+        .alphaDecay(0.05)
+        .on("tick", () => { render(); });
 
-    // Draw lines for links (edges) with arrowheads
-    const link = g.append("g") // append to the g element for zoom
-        .attr("stroke", "#999")
-        .attr("stroke-opacity", 0.6)
-        .selectAll("path")
-        .data(links)
-        .join("path")
-        .attr("marker-end", "url(#end)") // use the defined arrow marker
-        .attr("fill", "none")
-        .attr("stroke-width", 2);
-
-    // Draw circles for nodes
-    const node = g.append("g") // append to the g element for zoom
-        .attr("stroke", "#fff")
-        .attr("stroke-width", 1.5)
-        .selectAll("circle")
-        .data(nodes)
-        .join("circle")
-        .attr("r", d => d.Size) // this is the size determined by the size property default can be set to("r", 10)
-        .attr("fill", d => d.Color) // use 'Color' property
-        .call(drag(simulation))
-        node.on("mouseover", function (event, d) {
-            g.append("text")
-                .attr("x", d.x + 10)
-                .attr("y", d.y)
-                .text(d.Id)
-                .attr("id", "hoverLabel") // use the id for styling or replace id with class for styling #hoverLabel vs .hoverLabel
-                .attr("class", "hover-text"); // or just use this class LOL
-        })
-        .on("mouseout", function () {
-            svg.select("#hoverLabel").remove();
+    // Zoom functionality adapted for canvas
+    const zoom = d3.zoom()
+        .scaleExtent([0.1, 10]) // Adjusted for a wider zoom range
+        .on("zoom", (event) => {
+            transform = event.transform;
+            render();
         });
 
-    // Add labels to nodes
-    const labels = g.append("g") // append to the g element for zoom
-        .attr("class", "labels")
-        .selectAll("text")
-        .data(nodes)
-        .enter()
-        .append("text")
-        .attr("dx", 12)
-        .attr("dy", ".35em");
-    // .text(d => d.Id); i commented this code out. If we add this code, it will show all the labels.
-
-    // Update positions on each simulation tick (CURVED LINE METHOD)
-    // uncomment this code and remove the above code if you want curved lines
-    /*
-    simulation.on("tick", () => {
-        link.attr("d", d => {
-            const dx = d.target.x - d.source.x,
-                dy = d.target.y - d.source.y,
-                dr = Math.sqrt(dx * dx + dy * dy);
-            return `M${d.source.x},${d.source.y}A${dr},${dr} 0 0,1 ${d.target.x},${d.target.y}`;
-        });
-
-        node.attr("cx", d => d.x)
-            .attr("cy", d => d.y);
-
-        labels.attr("x", d => d.x)
-            .attr("y", d => d.y);
-    });
-    */
-
-    // Update link positions on each simulation tick (STRAIGHT LINE METHOD)
-    simulation.on("tick", () => {
-        link.attr("d", d => `M${d.source.x},${d.source.y}L${d.target.x},${d.target.y}`);
-
-        node.attr("cx", d => d.x)
-            .attr("cy", d => d.y);
-
-        labels.attr("x", d => d.x)
-            .attr("y", d => d.y);
-    });
+    canvas.call(zoom);
 
     // Drag functionality for nodes
-    function drag(simulation) {
-        function dragstarted(event, d) {
-            if (!event.active) simulation.alphaTarget(0.3).restart();
-            d.fx = d.x;
-            d.fy = d.y;
+    function dragsubject(event) {
+        let i, node, dx, dy;
+        const x = transform.invertX(event.x),
+            y = transform.invertY(event.y);
+        for (i = nodes.length - 1; i >= 0; --i) {
+            node = nodes[i];
+            dx = x - node.x;
+            dy = y - node.y;
+            if (dx * dx + dy * dy < 30) {
+                node.x = transform.applyX(node.x);
+                node.y = transform.applyY(node.y);
+                return node;
+            }
         }
-
-        function dragged(event, d) {
-            d.fx = event.x;
-            d.fy = event.y;
-        }
-
-        function dragended(event, d) {
-            if (!event.active) simulation.alphaTarget(0);
-            d.fx = null;
-            d.fy = null;
-        }
-
-        return d3.drag()
-            .on("start", dragstarted)
-            .on("drag", dragged)
-            .on("end", dragended);
     }
 
-    // reset zoom functionality
-    document.getElementById("resetZoom").addEventListener("click", function () {
-        svg.transition()
-            .duration(750) // smooth transition
-            .call(zoom.transform, d3.zoomIdentity); // Reset zoom
+    const drag = d3.drag()
+        .container(canvas.node())
+        .subject(dragsubject)
+        .on("start", dragstarted)
+        .on("drag", dragged)
+        .on("end", dragended);
+
+    canvas.call(drag);
+
+    function dragstarted(event) {
+        if (!event.active) simulation.alphaTarget(0.3).restart();
+        event.subject.fx = transform.invertX(event.x);
+        event.subject.fy = transform.invertY(event.y);
+    }
+
+    function dragged(event) {
+        event.subject.fx = transform.invertX(event.x);
+        event.subject.fy = transform.invertY(event.y);
+    }
+
+    function dragended(event) {
+        if (!event.active) simulation.alphaTarget(0);
+        event.subject.fx = null;
+        event.subject.fy = null;
+    }
+
+    canvas.on("mousemove", mousemoved);
+
+    function mousemoved(event) {
+        const mouseX = transform.invertX(event.offsetX);
+        const mouseY = transform.invertY(event.offsetY);
+
+        let hoverNode = null;
+        for (let node of nodes) {
+            const dx = mouseX - node.x;
+            const dy = mouseY - node.y;
+            // Ensure you are using the correct size property from your node data
+            if (dx * dx + dy * dy < (node.Size || 5) * (node.Size || 5)) {
+                hoverNode = node;
+                break;
+            }
+        }
+
+        if (hoverNode) {
+            console.log("Hovering over node:", hoverNode);  // This should log the node data
+            showTooltip(hoverNode, event.offsetX, event.offsetY);
+        } else {
+            hideTooltip();
+        }
+    }
+
+    function showTooltip(node, mouseX, mouseY) {
+        const canvasRect = canvas.node().getBoundingClientRect(); // Get the bounding rectangle of the canvas
+
+        // Apply the current transformation to the node's position
+        const transformedX = transform.applyX(node.x) + canvasRect.left;
+        const transformedY = transform.applyY(node.y) + canvasRect.top;
+
+        const xOffset = 10; // Horizontal offset from the node
+        const yOffset = 10; // Vertical offset from the node
+
+        const tooltip = d3.select("#tooltip");
+        tooltip.style("left", (transformedX + xOffset) + "px")
+            .style("top", (transformedY + yOffset) + "px")
+            .html(node.Id) // Use the property that contains the text you want to display
+            .style("visibility", "visible");
+    }
+
+
+    function hideTooltip() {
+        const tooltip = d3.select("#tooltip");
+        tooltip.style("visibility", "hidden");
+    }
+
+    // Reset zoom button event listener
+    document.getElementById('resetZoom').addEventListener('click', () => {
+        transform = d3.zoomIdentity;
+        render();
+        canvas.transition().duration(750).call(zoom.transform, d3.zoomIdentity);
     });
+
+    // Render function to draw the graph
+    function render() {
+        context.clearRect(0, 0, width, height);
+        context.save();
+        context.translate(transform.x, transform.y);
+        context.scale(transform.k, transform.k);
+
+        // Draw links
+        links.forEach(function (d) {
+            context.beginPath();
+            context.moveTo(d.source.x, d.source.y);
+            context.lineTo(d.target.x, d.target.y);
+            context.strokeStyle = "#aaa";
+            context.stroke();
+        });
+
+        // Draw nodes
+        nodes.forEach(function (d) {
+            context.beginPath();
+            context.arc(d.x, d.y, d.Size || 5, 0, 2 * Math.PI); // Use 'Size' attribute, default to 5
+            context.fillStyle = d.Color; // Use 'Color' attribute
+            context.fill();
+        });
+        context.restore();
+    }
 }
 
 renderGraph();
+
+// Add the SVG for the legend
+function addLegend() {
+    const svg = d3.select("#graphContainer").append("svg")
+        .attr("width", 300) // Adjust width and height as needed
+        .attr("height", 100)
+        .style("position", "absolute")
+        .style("top", "10px")
+        .style("left", "10px");
+
+    // Legend code
+    function defineGradient(svg) {
+        const gradient = svg.append("defs")
+            .append("linearGradient")
+            .attr("id", "legendGradient")
+            .attr("x1", "0%")
+            .attr("x2", "100%")
+            .attr("y1", "0%")
+            .attr("y2", "0%");
+
+        // Define the gradient stops
+        gradient.append("stop")
+            .attr("offset", "0%")
+            .attr("stop-color", "blue");
+
+        gradient.append("stop")
+            .attr("offset", "25%")
+            .attr("stop-color", "green");
+
+        gradient.append("stop")
+            .attr("offset", "50%")
+            .attr("stop-color", "red");
+
+        gradient.append("stop")
+            .attr("offset", "75%")
+            .attr("stop-color", "purple");
+
+        gradient.append("stop")
+            .attr("offset", "100%")
+            .attr("stop-color", "pink");
+    }
+
+    function createGradientLegend(svg) {
+        const legendWidth = 200; // Width of the gradient bar
+        const legendHeight = 20; // Height of the gradient bar
+        const legendX = 0; // X position of the legend
+        const legendY = 0; // Y position of the legend
+
+        // Container for the legend
+        const legend = svg.append("g")
+            .attr("class", "legend")
+            .attr("transform", `translate(${legendX}, ${legendY})`); // Position at top-left corner
+
+        // White background
+        legend.append("rect")
+            .attr("x", 0)
+            .attr("y", 0)
+            .attr("width", legendWidth + 60) // Extra width for text
+            .attr("height", legendHeight + 40) // Extra height for text and padding
+            .attr("fill", "white");
+
+        // Gradient bar
+        legend.append("rect")
+            .attr("x", 20)
+            .attr("y", 20)
+            .attr("width", legendWidth)
+            .attr("height", legendHeight)
+            .style("fill", "url(#legendGradient)");
+
+        // Text labels for the gradient
+        const textData = [
+            { position: "start", text: "Fewer links" },
+            { position: "end", text: "More links" }
+        ];
+
+        legend.selectAll("text")
+            .data(textData)
+            .enter()
+            .append("text")
+            .attr("x", (d, i) => i === 0 ? 20 : legendWidth + 40)
+            .attr("y", 15)
+            .attr("text-anchor", (d, i) => i === 0 ? "start" : "end")
+            .text(d => d.text);
+    }
+
+    defineGradient(svg);
+    createGradientLegend(svg);
+}
+
+addLegend();
