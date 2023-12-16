@@ -28,7 +28,7 @@ public class WebGraph
     {
         RootNode = new WebNode(rootUrl);
         var visitedDomains = new HashSet<string>();
-        FetchLinks(RootNode, visitedDomains, 10); // set depth limit here
+        FetchLinks(RootNode, visitedDomains, 1); // set depth limit here
     }
 
     // added parallel processessing

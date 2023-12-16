@@ -3,6 +3,81 @@
 
 // Write your JavaScript code.
 
+// legend code
+function defineGradient(svg) {
+    const gradient = svg.append("defs")
+        .append("linearGradient")
+        .attr("id", "legendGradient")
+        .attr("x1", "0%")
+        .attr("x2", "100%")
+        .attr("y1", "0%")
+        .attr("y2", "0%");
+
+    // Define the gradient stops
+    gradient.append("stop")
+        .attr("offset", "0%")
+        .attr("stop-color", "blue");
+
+    gradient.append("stop")
+        .attr("offset", "25%")
+        .attr("stop-color", "green");
+
+    gradient.append("stop")
+        .attr("offset", "50%")
+        .attr("stop-color", "red");
+
+    gradient.append("stop")
+        .attr("offset", "75%")
+        .attr("stop-color", "purple");
+
+    gradient.append("stop")
+        .attr("offset", "100%")
+        .attr("stop-color", "pink");
+}
+function createGradientLegend(svg) {
+    const legendWidth = 200; // Width of the gradient bar
+    const legendHeight = 20; // Height of the gradient bar
+    const legendX = 0; // X position of the legend
+    const legendY = 0; // Y position of the legend
+
+    // Container for the legend
+    const legend = svg.append("g")
+        .attr("class", "legend")
+        .attr("transform", `translate(${legendX}, ${legendY})`); // Position at top-left corner
+
+    // White background
+    legend.append("rect")
+        .attr("x", 0)
+        .attr("y", 0)
+        .attr("width", legendWidth + 60) // Extra width for text
+        .attr("height", legendHeight + 40) // Extra height for text and padding
+        .attr("fill", "white");
+
+    // Gradient bar
+    legend.append("rect")
+        .attr("x", 20)
+        .attr("y", 20)
+        .attr("width", legendWidth)
+        .attr("height", legendHeight)
+        .style("fill", "url(#legendGradient)");
+
+    // Text labels for the gradient
+    const textData = [
+        { position: "start", text: "Fewer links" },
+        { position: "end", text: "More links" }
+    ];
+
+    legend.selectAll("text")
+        .data(textData)
+        .enter()
+        .append("text")
+        .attr("x", (d, i) => i === 0 ? 20 : legendWidth + 40)
+        .attr("y", 15)
+        .attr("text-anchor", (d, i) => i === 0 ? "start" : "end")
+        .text(d => d.text);
+}
+
+
 console.log(graphData); // debugging
 
 function renderGraph() {
@@ -22,10 +97,13 @@ function renderGraph() {
     const svg = d3.select("#graphContainer").append("svg")
         .attr("width", "100%")
         .attr("height", "100%")
-        .attr("viewBox", "0 0 1200 1200") // centering & view box
+        .attr("viewBox", "0 0 100% 100%") // centering & view box
         .attr("preserveAspectRatio", "xMidYMid meet");
 
     const g = svg.append("g"); // adding a g element
+
+    defineGradient(svg); // Define the gradient
+    createGradientLegend(svg); // Create the gradient legend
 
     // zoom function
     const zoom = d3.zoom()
