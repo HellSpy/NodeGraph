@@ -18,8 +18,13 @@ namespace NodeGraphWeb.Pages
 
         public void OnGet()
         {
+            //Fetch the graph data in JSON format from the database
+            GraphJsonData = _graphService.GetGraphDataFromDatabase();
+
+            /* // previous code for fetching directly from backend
             var graph = _graphService.BuildGraph("https://github.com");
             GraphJsonData = _graphService.ConvertGraphToJson(graph);
+            */
         }
     }
 }

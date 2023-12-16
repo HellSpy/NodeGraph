@@ -112,7 +112,7 @@ public class RecursionForm : Form
 
         Console.WriteLine("Fetching links for: " + node.Url);
 
-        webGraph.FetchLinks(node, webGraph.VisitedDomains);
+        webGraph.FetchLinks(node, webGraph.VisitedDomains, 1);
         UpdateViewerGraph(node);
 
         foreach (var linkedNode in node.LinkedNodes)

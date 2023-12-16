@@ -115,7 +115,7 @@ public class FormVisualizer : Form
             stopwatch.Start(); // begins the stopwatch so we can see how long it takes to generate the graph
 
             var node = new WebNode(dnode.Node.Id);
-            webGraph.FetchLinks(node, visitedDomains);
+            webGraph.FetchLinks(node, visitedDomains, 1);
 
             Console.WriteLine("Fetched links for: " + dnode.Node.Id);
 
@@ -227,19 +227,6 @@ public class FormVisualizer : Form
         this.Text = "NodeGraph -- Generated in " + stopwatch.ElapsedMilliseconds.ToString() + " ms";
     }
 
-    private string ShortenUrl(string url)
-    {
-        try
-        {
-            var uri = new Uri(url);
-            return uri.Host; // Shortens to domain name
-        }
-        catch
-        {
-            return url; // Return the original URL if it's not a valid URI
-        }
-    }
-
     private void ShowAddUrlForm()
     {
         addUrlForm = new AddUrlForm();
@@ -253,7 +240,7 @@ public class FormVisualizer : Form
             if (!string.IsNullOrEmpty(enteredUrl) && IsValidUrl(enteredUrl))
             {
                 var newNode = new WebNode(enteredUrl);
-                webGraph.FetchLinks(newNode, visitedDomains);
+                webGraph.FetchLinks(newNode, visitedDomains, 1);
                 UpdateGraph(newNode);
             }
             else
@@ -275,19 +262,5 @@ public class FormVisualizer : Form
         // Open the recursion form and pass viewer and nodeUrlMap
         var recursionForm = new RecursionForm(webGraph, viewer, nodeUrlMap);
         recursionForm.ShowDialog();
-    }
-
-
-    private void InitializeComponent()
-    {
-            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(FormVisualizer));
-            this.SuspendLayout();
-            // 
-            // FormVisualizer
-            // 
-            this.ClientSize = new System.Drawing.Size(800, 600);
-            this.Name = "FormVisualizer";
-            this.ResumeLayout(false);
-
     }
 }

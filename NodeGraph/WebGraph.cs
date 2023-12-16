@@ -7,6 +7,9 @@ using Microsoft.Msagl.Layout.MDS;
 using System.Threading.Tasks;
 using System.Collections.Concurrent;
 using Microsoft.Msagl.Core.Routing;
+using System.Data.SqlClient;
+using System.Text;
+using MySql.Data.MySqlClient;
 
 public class WebGraph
 {
@@ -25,12 +28,19 @@ public class WebGraph
     {
         RootNode = new WebNode(rootUrl);
         var visitedDomains = new HashSet<string>();
-        FetchLinks(RootNode, visitedDomains);
+        FetchLinks(RootNode, visitedDomains, 1); // set depth limit here
     }
 
     // added parallel processessing
-    public void FetchLinks(WebNode node, HashSet<string> visitedDomains)
+    public void FetchLinks(WebNode node, HashSet<string> visitedDomains, int depthLimit)
     {
+        Console.WriteLine($"Fetching links for: {node.Url}, Depth Limit: {depthLimit}");
+
+        if (depthLimit <= 0)
+        {
+            return; // Stop recursion when depth limit is reached
+        }
+
         try
         {
             // load the document from the URL
@@ -85,15 +95,16 @@ public class WebGraph
                     }
                 }
 
-                /* Uncomment this section for recursive link fetching
                 foreach (var newNode in newNodes)
                 {
+                    Console.WriteLine($"Processing new node: {newNode.Url}");
+
                     if (!visitedDomains.Contains(newNode.Url))
                     {
-                        FetchLinks(newNode, visitedDomains);
+                        Console.WriteLine($"Making recursive call for: {newNode.Url}");
+                        FetchLinks(newNode, visitedDomains, depthLimit - 1); // Recursive call with decremented depth limit
                     }
                 }
-                */
             }
         }
         catch (Exception ex)
@@ -101,7 +112,6 @@ public class WebGraph
             Console.WriteLine("Error fetching links from: " + node.Url + "\n" + ex.Message);
         }
     }
-
 
     public Graph Visualize()
     {
@@ -117,19 +127,13 @@ public class WebGraph
         // use MDS layout settings
         var mdsLayout = new MdsLayoutSettings
         {
-            // RemoveOverlaps = true, // Enable overlap removal
-            // ScaleX = 1.0, // Set X scaling
-            // ScaleY = 1.0, // Set Y scaling
-            // PackingAspectRatio = 1.0, // Set packing aspect ratio
-            // PivotNumber = 50 // Set the number of pivots
             EdgeRoutingSettings = edgeRouting
         };
 
         graph.LayoutAlgorithmSettings = mdsLayout;
+        
 
         AddNodeToGraph(RootNode, graph, new HashSet<string>());
-
-        ApplyClustering(graph);
 
         return graph;
     }
@@ -151,8 +155,6 @@ public class WebGraph
             // check if the linked node is not already visited
             if (!visitedDomains.Contains(linkedNode.Url))
             {
-                // apply styling to the linked node and add it to the graph
-                StyleNode(linkedNode.Url, graph);
 
                 // create a directed edge from the current node to the linked node
                 var edge = graph.AddEdge(node.Url, linkedNode.Url);
@@ -160,6 +162,9 @@ public class WebGraph
                 // customize the appearance of the edge
                 edge.Attr.Color = Color.Black; // Set the color of the edge
                 edge.Attr.ArrowheadAtTarget = ArrowStyle.Normal; // Set the style of the arrowhead
+
+                // recursively process linked nodes!!!!!!
+                AddNodeToGraph(linkedNode, graph, visitedDomains);
             }
         }
     }
@@ -215,44 +220,85 @@ public class WebGraph
         msaglNode.Attr.FillColor = new Color(redShade, greenShade, blueShade);
 
         msaglNode.Attr.Shape = Shape.Circle;
-        msaglNode.Label.FontSize = 8; // add + linkedNodeCount to increase font size based on linkedNodeCount
+        msaglNode.Label.FontSize = 8 + (linkedNodeCount * 0.5);
         msaglNode.LabelText = uri.Host;
         msaglNode.Label.FontColor = Color.White;
 
         return msaglNode;
     }
-
-
-    private void ApplyClustering(Graph graph)
+    public List<(WebNode Source, WebNode Target)> GetAllEdges()
     {
-        // Basic clustering logic... (MOSTLY INCOMPLETE)
-        var clusters = new Dictionary<string, Subgraph>();
+        var allEdges = new HashSet<(WebNode, WebNode)>();
+        CollectAllEdges(RootNode, allEdges, new HashSet<WebNode>());
+        return allEdges.ToList();
+    }
 
-        foreach (var node in graph.Nodes)
+    private void CollectAllEdges(WebNode node, HashSet<(WebNode, WebNode)> allEdges, HashSet<WebNode> visited)
+    {
+        if (!visited.Contains(node))
         {
-            string clusterKey = GetClusterKey(node);
-            if (!clusters.ContainsKey(clusterKey))
+            visited.Add(node);
+            foreach (var linkedNode in node.LinkedNodes)
             {
-                var subgraph = new Subgraph(clusterKey);
-                clusters[clusterKey] = subgraph;
-                graph.RootSubgraph.AddSubgraph(subgraph);
+                allEdges.Add((node, linkedNode));
+                CollectAllEdges(linkedNode, allEdges, visited);
             }
-            clusters[clusterKey].AddNode(node);
-        }
-    }
-    private string GetClusterKey(Node node)
-    {
-        // Using the node's Id (which stores the URL) for clustering logic.
-        // This example clusters by the first letter of the node's Id.
-        // Ensure that the Id is not null or empty to avoid exceptions.
-        if (!string.IsNullOrEmpty(node.Id) && node.Id.Length > 0)
-        {
-            return node.Id.Substring(0, 1).ToUpper(); // Use ToUpper() to standardize the cluster key if needed.
-        }
-        else
-        {
-            return string.Empty; // Or a default cluster key if the Id is not set or is empty.
         }
     }
 
+    public async Task TransferToDatabase(Graph graph)
+    {
+        // Connection string - replace this with a secure method in production
+        string connectionString = "server=193.203.166.22;user=u278723081_Avilin;database=u278723081_NodeGraph;port=3306;password=Csvma!l122mA";
+
+        using (var connection = new MySqlConnection(connectionString))
+        {
+            await connection.OpenAsync();
+
+            // Batch insertion for nodes using the new format
+            var nodeInsertCommand = new StringBuilder("INSERT INTO Nodes (Id, LabelText, Color, Size) VALUES ");
+
+            // Use the new format for nodes
+            var nodes = graph.Nodes.Select(n => new {
+                Id = n.Id,
+                LabelText = n.LabelText,
+                Color = $"#{n.Attr.FillColor.R:X2}{n.Attr.FillColor.G:X2}{n.Attr.FillColor.B:X2}",
+                Size = n.Label.FontSize
+            });
+
+            foreach (var node in nodes)
+            {
+                Console.WriteLine($"Node - ID: {node.Id}, LabelText: {node.LabelText}, Color: {node.Color}");  // Debugging
+                // Append each node's data to the command
+                nodeInsertCommand.Append($"('{MySqlHelper.EscapeString(node.Id)}', '{MySqlHelper.EscapeString(node.LabelText)}', '{node.Color}', '{node.Size}'),");
+            }
+
+            // Remove the last comma and execute the command
+            nodeInsertCommand.Length--;
+            using (var cmd = new MySqlCommand(nodeInsertCommand.ToString(), connection))
+            {
+                await cmd.ExecuteNonQueryAsync();
+            }
+
+            // Batch insertion for edges
+            var edgeInsertCommand = new StringBuilder("INSERT INTO Edges (sourceId, targetId) VALUES ");
+            foreach (var edge in GetAllEdges())
+            {
+                // Escape special characters to prevent SQL injection
+                var sourceId = MySqlHelper.EscapeString(edge.Source.Url);
+                var targetId = MySqlHelper.EscapeString(edge.Target.Url);
+
+                edgeInsertCommand.Append($"('{sourceId}', '{targetId}'),");
+                Console.WriteLine($"Edge - Source: {edge.Source.Url}, Target: {edge.Target.Url}");  // Debugging
+            }
+            edgeInsertCommand.Length--; // Remove the last comma
+            using (var cmd = new MySqlCommand(edgeInsertCommand.ToString(), connection))
+            {
+                await cmd.ExecuteNonQueryAsync();
+            }
+
+            // Print a success message to the console
+            Console.WriteLine("Transfer to database successful.");
+        }
+    }
 }
