@@ -27,7 +27,7 @@ function renderGraph() {
     const context = canvas.node().getContext("2d");
     let transform = d3.zoomIdentity;
 
-    const radius = 100; // Define the desired radius for your nodes
+    const radius = 100; // Define the desired radius for your nodes - this is for the circle in which all the nodes will be in
 
     // Create a simulation for positioning nodes with adjusted parameters for faster movement
     const simulation = d3.forceSimulation(nodes)
