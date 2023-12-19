@@ -41,6 +41,9 @@ function renderGraph() {
     const width = container.node().getBoundingClientRect().width;
     const height = container.node().getBoundingClientRect().height;
 
+    // Clear the existing canvas before appending a new one
+    container.selectAll("canvas").remove();
+
     // Create a canvas element
     const canvas = container.append("canvas")
         .attr("width", width)
@@ -49,11 +52,46 @@ function renderGraph() {
     const context = canvas.node().getContext("2d");
     let transform = d3.zoomIdentity;
 
+    // Add double-click event listener to nodes
+    canvas.on("dblclick", doubleClicked);
+
+    function doubleClicked(event) {
+        const mouseX = transform.invertX(event.offsetX);
+        const mouseY = transform.invertY(event.offsetY);
+
+        let clickedNode = null;
+        for (let node of nodes) {
+            const dx = mouseX - node.x;
+            const dy = mouseY - node.y;
+            if (dx * dx + dy * dy < node.Size * node.Size) {
+                clickedNode = node;
+                break;
+            }
+        }
+
+        if (clickedNode) {
+            // Function to fetch new nodes and links
+            fetchNewNodes(clickedNode.Id);
+        }
+    }
+    function fetchNewNodes(nodeId) {
+        // Replace this URL with your server's URL for fetching new nodes
+        const url = `/FetchLinks?nodeId=${nodeId}`;
+
+        fetch(url)
+            .then(response => response.json())
+            .then(newData => {
+                mergeGraphData(newData);
+                renderGraph();
+            })
+            .catch(error => console.error('Error fetching new nodes:', error));
+    }
+
     // Create a simulation for positioning nodes with adjusted parameters for faster movement
     const simulation = d3.forceSimulation(nodes)
         .force("link", d3.forceLink(links).id(d => d.Id).distance(() => Math.random() * 100 + 70)) // randomly adjust distance
         .force("charge", d3.forceManyBody()
-            .strength(d => -30 * (d.Size || 1)) // Adjust strength based on node size
+            .strength(d => -5 * (d.Size || 1)) // Adjust strength based on node size
         )
         .force("collide", d3.forceCollide()
             .radius(d => (d.Size * 1.1)) // dynamic radius based on half of the node's size, plus a buffer of 1

@@ -6,7 +6,12 @@
 
 <h1>Graph Visualization</h1>
 
+<h2>Instructions</h2>
+<p>Add a node or link by inputting the URL. Ensure the url begins with http:// or https://</p>
+<p>Double clicking on nodes will attempt to fetch more nodes if there are any.</p>
+
 <form method="post">
+    @Html.AntiForgeryToken() <!-- Anti-forgery token -->
     <input type="text" name="urlInput" placeholder="Enter a URL" required>
     <button type="submit">Build Graph</button>
 </form>
@@ -18,6 +23,7 @@
 
 
 <button id="resetZoom">Reset Zoom</button>
+<button id="resetGraph">Reset Graph</button>
 
 <style>
     #container {
@@ -35,6 +41,13 @@
     }
 
     #resetZoom {
+        padding: 5px 10px;
+        font-size: 14px;
+        cursor: pointer;
+        background-color: gainsboro;
+    }
+
+    #resetGraph {
         padding: 5px 10px;
         font-size: 14px;
         cursor: pointer;
@@ -61,3 +74,35 @@
 </script>
 
 <script src="~/js/buildgraph.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var resetButton = document.getElementById('resetGraph');
+        if (resetButton) {
+            resetButton.addEventListener('click', function () {
+                currentNodes = [];
+                currentLinks = [];
+                graphData = { Nodes: currentNodes, Edges: currentLinks };
+                renderGraph();
+
+                var token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+                fetch('/Build?handler=ResetGraph', {
+                    method: 'POST',
+                    headers: {
+                        'RequestVerificationToken': token, // Include anti-forgery token
+                        'Content-Type': 'application/json' // Set Content-Type if necessary
+                    }
+                })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        console.log('Server-side graph reset successful');
+                    })
+                    .catch(error => {
+                        console.error('Failed to reset server-side graph:', error);
+                    });
+            });
+        }
+    });
+</script>
+
