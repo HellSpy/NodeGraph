@@ -1,13 +1,15 @@
 ﻿using System.Text.Json; // For JSON serialization
 using Microsoft.Msagl.Drawing;
-using NodeGraphWeb.Services;
+using NodeGraphWeb.Services2;
 
-namespace NodeGraphWeb.Services
+namespace NodeGraphWeb.Services2
 {
-    // uncomment this code if you want links to be fetched directly from backend calculations
     
     public class GraphServiceBuild
     {
+        // Initialize _existingGraph as a new Graph instance or retrieve it from a persistent source
+        private Graph _existingGraph = new Graph();
+
         public GraphServiceBuild()
         {
             // Initialization, if necessary
@@ -16,10 +18,31 @@ namespace NodeGraphWeb.Services
         public Graph BuildGraph(string url)
         {
             WebGraph webGraph = new WebGraph();
-            // Use methods from your NodeGraph project
             webGraph.BuildGraph(url);
-            return webGraph.Visualize(); // Assuming this is how you build and visualize the graph
+
+            // Append new nodes to _existingGraph
+            foreach (var node in webGraph.Visualize().Nodes)
+            {
+                if (!_existingGraph.Nodes.Any(n => n.Id == node.Id))
+                {
+                    _existingGraph.AddNode(node);
+                }
+            }
+
+            // Append new edges to _existingGraph
+            foreach (var edge in webGraph.Visualize().Edges)
+            {
+                if (!_existingGraph.Edges.Any(e => e.Source == edge.Source && e.Target == edge.Target))
+                {
+                    // Correcting the AddEdge method usage
+                    _existingGraph.AddEdge(edge.SourceNode.Id, edge.TargetNode.Id);
+                    // Optionally set other properties of the edge here
+                }
+            }
+
+            return _existingGraph;
         }
+
 
         public string ConvertGraphToJson(Graph graph)
         {

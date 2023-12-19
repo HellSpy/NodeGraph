@@ -7,7 +7,7 @@
 <h1>Graph Visualization</h1>
 
 <div id="container">
-    <div id="graphContainer2"></div>
+    <div id="graphContainer"></div>
 </div>
 <div id="tooltip" style="position: absolute; visibility: hidden; background-color: #fff; border: 1px solid #000; padding: 5px; pointer-events: none;"></div>
 
@@ -53,3 +53,5 @@
     var graphData = @Html.Raw(Model.GraphJsonData); // inject the JSON data into the page
     // this utilizes the site.js file
 </script>
+
+<script src="~/js/nodegraph.js"></script>

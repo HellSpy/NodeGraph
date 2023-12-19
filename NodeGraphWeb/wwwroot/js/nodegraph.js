@@ -4,29 +4,7 @@
 // Write your JavaScript code.
 
 console.log(graphData); // debugging
-
-// Global variables to hold the current state of the graph
-var currentNodes = [];
-var currentLinks = [];
-
-function mergeGraphData(newData) {
-    // Merge new nodes
-    newData.Nodes.forEach(newNode => {
-        if (!currentNodes.some(node => node.Id === newNode.Id)) {
-            currentNodes.push(newNode);
-        }
-    });
-
-    // Merge new links
-    newData.Edges.forEach(newLink => {
-        if (!currentLinks.some(link => link.source === newLink.source && link.target === newLink.target)) {
-            currentLinks.push(newLink);
-        }
-    });
-}
-
 function renderGraph() {
-    mergeGraphData(graphData);
     // Check if graphData is defined
     if (!graphData || !graphData.Nodes || !graphData.Edges) {
         console.error('Graph data is not defined or is missing nodes or edges');
@@ -37,7 +15,7 @@ function renderGraph() {
     const links = graphData.Edges;
 
     // Set canvas to take full size of its container
-    const container = d3.select("#graphContainer2");
+    const container = d3.select("#graphContainer");
     const width = container.node().getBoundingClientRect().width;
     const height = container.node().getBoundingClientRect().height;
 
@@ -49,6 +27,8 @@ function renderGraph() {
     const context = canvas.node().getContext("2d");
     let transform = d3.zoomIdentity;
 
+    const radius = 100; // Define the desired radius for your nodes - this is for the circle in which all the nodes will be in
+
     // Create a simulation for positioning nodes with adjusted parameters for faster movement
     const simulation = d3.forceSimulation(nodes)
         .force("link", d3.forceLink(links).id(d => d.Id).distance(() => Math.random() * 100 + 70)) // randomly adjust distance
@@ -57,8 +37,10 @@ function renderGraph() {
         )
         .force("collide", d3.forceCollide()
             .radius(d => (d.Size * 1.1)) // dynamic radius based on half of the node's size, plus a buffer of 1
-            .strength(1)) // maximum strength to ensure separation
+            .strength(2)) // maximum strength to ensure separation
         .force("center", d3.forceCenter(width / 2, height / 2))
+        .force("radial", d3.forceRadial(radius, width / 2, height / 2).strength(0.4)) // add the radial force
+        .alphaDecay(0.05)
         .on("tick", () => { render(); });
 
     // Zoom functionality adapted for canvas
@@ -71,6 +53,48 @@ function renderGraph() {
 
     canvas.call(zoom);
 
+    // Drag functionality for nodes
+    function dragsubject(event) {
+        let i, node, dx, dy;
+        const x = transform.invertX(event.x),
+            y = transform.invertY(event.y);
+        for (i = nodes.length - 1; i >= 0; --i) {
+            node = nodes[i];
+            dx = x - node.x;
+            dy = y - node.y;
+            if (dx * dx + dy * dy < 30) {
+                node.x = transform.applyX(node.x);
+                node.y = transform.applyY(node.y);
+                return node;
+            }
+        }
+    }
+
+    const drag = d3.drag()
+        .container(canvas.node())
+        .subject(dragsubject)
+        .on("start", dragstarted)
+        .on("drag", dragged)
+        .on("end", dragended);
+
+    canvas.call(drag);
+
+    function dragstarted(event) {
+        if (!event.active) simulation.alphaTarget(0.3).restart();
+        event.subject.fx = transform.invertX(event.x);
+        event.subject.fy = transform.invertY(event.y);
+    }
+
+    function dragged(event) {
+        event.subject.fx = transform.invertX(event.x);
+        event.subject.fy = transform.invertY(event.y);
+    }
+
+    function dragended(event) {
+        if (!event.active) simulation.alphaTarget(0);
+        event.subject.fx = null;
+        event.subject.fy = null;
+    }
 
     function getConnectedNodes(node) {
         const connectedNodes = new Set();
@@ -81,6 +105,10 @@ function renderGraph() {
             }
         });
         return connectedNodes;
+    }
+
+    function isLinkConnected(link, connectedNodes) {
+        return connectedNodes.has(link.source.Id) || connectedNodes.has(link.target.Id);
     }
 
     canvas.on("mousemove", mousemoved);
@@ -188,7 +216,7 @@ renderGraph();
 
 // Add the SVG for the legend
 function addLegend() {
-    const svg = d3.select("#graphContainer2").append("svg")
+    const svg = d3.select("#graphContainer").append("svg")
         .attr("width", 300) // Adjust width and height as needed
         .attr("height", 100)
         .style("position", "absolute")

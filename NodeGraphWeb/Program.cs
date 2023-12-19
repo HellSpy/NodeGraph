@@ -1,4 +1,5 @@
 using NodeGraphWeb.Services;
+using NodeGraphWeb.Services2;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -6,6 +7,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorPages();
 builder.Services.AddControllersWithViews(); // For MVC
 builder.Services.AddScoped<GraphService>(); // register GraphService
+builder.Services.AddTransient<GraphServiceBuild>(); // register the build graph service
 
 var app = builder.Build();
 
