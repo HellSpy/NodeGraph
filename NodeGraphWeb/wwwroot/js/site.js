@@ -36,8 +36,8 @@ function renderGraph() {
             .strength(d => -30 * (d.Size || 1)) // Adjust strength based on node size
         )
         .force("collide", d3.forceCollide()
-            .radius(d => (d.Size)) // dynamic radius based on half of the node's size, plus a buffer of 1
-            .strength(1)) // maximum strength to ensure separation
+            .radius(d => (d.Size * 1.1)) // dynamic radius based on half of the node's size, plus a buffer of 1
+            .strength(2)) // maximum strength to ensure separation
         .force("center", d3.forceCenter(width / 2, height / 2))
         .force("radial", d3.forceRadial(radius, width / 2, height / 2).strength(0.4)) // add the radial force
         .alphaDecay(0.05)
@@ -96,7 +96,26 @@ function renderGraph() {
         event.subject.fy = null;
     }
 
+    function getConnectedNodes(node) {
+        const connectedNodes = new Set();
+        links.forEach(link => {
+            if (link.source.Id === node.Id || link.target.Id === node.Id) {
+                connectedNodes.add(link.source.Id);
+                connectedNodes.add(link.target.Id);
+            }
+        });
+        return connectedNodes;
+    }
+
+    function isLinkConnected(link, connectedNodes) {
+        return connectedNodes.has(link.source.Id) || connectedNodes.has(link.target.Id);
+    }
+
     canvas.on("mousemove", mousemoved);
+
+    let connectedLinks = new Set();
+    let connectedNodes = new Set();
+
 
     function mousemoved(event) {
         const mouseX = transform.invertX(event.offsetX);
@@ -113,12 +132,23 @@ function renderGraph() {
             }
         }
 
+        connectedLinks.clear();
         if (hoverNode) {
-            console.log("Hovering over node:", hoverNode);  // This should log the node data
+            console.log("Hovering over node:", hoverNode);
             showTooltip(hoverNode, event.offsetX, event.offsetY);
+            connectedNodes = getConnectedNodes(hoverNode);
+
+            // Identify connected links
+            links.forEach(link => {
+                if (link.source.Id === hoverNode.Id || link.target.Id === hoverNode.Id) {
+                    connectedLinks.add(link);
+                }
+            });
         } else {
             hideTooltip();
+            connectedNodes.clear();
         }
+        render();  // re-render to update the opacities
     }
 
     function showTooltip(node, mouseX, mouseY) {
@@ -163,7 +193,9 @@ function renderGraph() {
             context.beginPath();
             context.moveTo(d.source.x, d.source.y);
             context.lineTo(d.target.x, d.target.y);
-            context.strokeStyle = "#aaa";
+            // Check if we are hovering over a node and if the link is connected to it
+            const isLinkDimmed = connectedNodes.size > 0 && !connectedLinks.has(d);
+            context.strokeStyle = isLinkDimmed ? "rgba(170, 170, 170, 0.2)" : "#aaa";
             context.stroke();
         });
 
@@ -172,8 +204,10 @@ function renderGraph() {
             context.beginPath();
             context.arc(d.x, d.y, d.Size || 5, 0, 2 * Math.PI); // Use 'Size' attribute, default to 5
             context.fillStyle = d.Color; // Use 'Color' attribute
+            context.globalAlpha = connectedNodes.size === 0 || connectedNodes.has(d.Id) ? 1 : 0.1; // Adjust opacity
             context.fill();
         });
+        context.globalAlpha = 1; // Reset globalAlpha to default
         context.restore();
     }
 }
