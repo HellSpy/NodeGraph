@@ -52,39 +52,42 @@ function renderGraph() {
     const context = canvas.node().getContext("2d");
     let transform = d3.zoomIdentity;
 
-    // Add double-click event listener to nodes
     canvas.on("dblclick", doubleClicked);
 
+    function fetchMoreNodes(nodeId) {
+        fetch(`/api/ExpandNodes/build?url=${encodeURIComponent(nodeId)}`)
+            .then(response => response.json())
+            .then(data => {
+                mergeGraphData(data);
+                renderGraph(); // Re-render the graph with new data
+            })
+            .catch(error => console.error('Error fetching more nodes:', error));
+    }
+
+    // Handle double-click event
     function doubleClicked(event) {
         const mouseX = transform.invertX(event.offsetX);
         const mouseY = transform.invertY(event.offsetY);
 
         let clickedNode = null;
-        for (let node of nodes) {
+        for (let node of currentNodes) {
             const dx = mouseX - node.x;
             const dy = mouseY - node.y;
-            if (dx * dx + dy * dy < node.Size * node.Size) {
+            if (dx * dx + dy * dy < (node.Size || 5) * (node.Size || 5)) {
                 clickedNode = node;
                 break;
             }
         }
 
         if (clickedNode) {
-            // Function to fetch new nodes and links
-            fetchNewNodes(clickedNode.Id);
+            console.log("Double-clicked node data:", clickedNode);
+            if (clickedNode.Id) {
+                console.log("Fetching more nodes for:", clickedNode.Id);
+                fetchMoreNodes(clickedNode.Id);
+            } else {
+                console.error("No ID found for the double-clicked node", clickedNode);
+            }
         }
-    }
-    function fetchNewNodes(nodeId) {
-        // Replace this URL with your server's URL for fetching new nodes
-        const url = `/FetchLinks?nodeId=${nodeId}`;
-
-        fetch(url)
-            .then(response => response.json())
-            .then(newData => {
-                mergeGraphData(newData);
-                renderGraph();
-            })
-            .catch(error => console.error('Error fetching new nodes:', error));
     }
 
     // Create a simulation for positioning nodes with adjusted parameters for faster movement
@@ -144,7 +147,7 @@ function renderGraph() {
 
         connectedLinks.clear();
         if (hoverNode) {
-            console.log("Hovering over node:", hoverNode);
+            // console.log("Hovering over node:", hoverNode); // debugging
             showTooltip(hoverNode, event.offsetX, event.offsetY);
             connectedNodes = getConnectedNodes(hoverNode);
 
