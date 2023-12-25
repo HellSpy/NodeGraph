@@ -5,17 +5,17 @@ namespace NodeGraphWeb.Services
 {
     public class DatabaseService
     {
-        private readonly string _connectionString;
+        private readonly string? connectionString;
 
-        public DatabaseService()
+        public DatabaseService(IConfiguration configuration)
         {
-            _connectionString = "server=193.203.166.22;user=u278723081_Avilin;database=u278723081_NodeGraph;port=3306;password=Csvma!l122mA";
+            connectionString = configuration.GetConnectionString("Database");
         }
 
         public IEnumerable<object> FetchNodes()
         {
             var nodes = new List<object>();
-            using (var connection = new MySqlConnection(_connectionString))
+            using (var connection = new MySqlConnection(connectionString))
             {
                 connection.Open();
                 var command = new MySqlCommand("SELECT Id, LabelText, Color, Size FROM Nodes", connection);
@@ -39,7 +39,7 @@ namespace NodeGraphWeb.Services
         public IEnumerable<object> FetchEdges()
         {
             var edges = new List<object>();
-            using (var connection = new MySqlConnection(_connectionString))
+            using (var connection = new MySqlConnection(connectionString))
             {
                 connection.Open();
                 var command = new MySqlCommand("SELECT SourceId, TargetId FROM Edges", connection);

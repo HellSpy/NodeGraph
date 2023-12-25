@@ -10,6 +10,7 @@ using Microsoft.Msagl.Core.Routing;
 using System.Data.SqlClient;
 using System.Text;
 using MySql.Data.MySqlClient;
+using Microsoft.Extensions.Configuration;
 
 public class WebGraph
 {
@@ -17,6 +18,14 @@ public class WebGraph
     public WebNode RootNode { get; private set; }
     public HashSet<string> VisitedDomains { get; private set; }
 
+    private readonly IConfiguration _configuration;
+
+    public WebGraph(IConfiguration configuration)
+    {
+        _configuration = configuration;
+        web = new HtmlWeb();
+        VisitedDomains = new HashSet<string>();
+    }
 
     public WebGraph()
     {
@@ -248,8 +257,8 @@ public class WebGraph
 
     public async Task TransferToDatabase(Graph graph)
     {
-        // Connection string - replace this with a secure method in production
-        string connectionString = "server=193.203.166.22;user=u278723081_Avilin;database=u278723081_NodeGraph;port=3306;password=Csvma!l122mA";
+        // Use IConfiguration to get the connection string
+        string connectionString = _configuration.GetConnectionString("Database");
 
         using (var connection = new MySqlConnection(connectionString))
         {
