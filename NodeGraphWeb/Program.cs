@@ -26,5 +26,6 @@ app.UseAuthorization();
 
 
 app.MapRazorPages();
+app.MapControllers(); // This is crucial for routing API controllers
 
 app.Run();

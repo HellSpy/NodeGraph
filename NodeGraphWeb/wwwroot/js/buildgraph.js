@@ -10,6 +10,9 @@ var currentNodes = [];
 var currentLinks = [];
 
 function mergeGraphData(newData) {
+
+    console.log("Current nodes before merge:", currentNodes);
+
     // Merge new nodes
     newData.Nodes.forEach(newNode => {
         if (!currentNodes.some(node => node.Id === newNode.Id)) {
@@ -23,6 +26,8 @@ function mergeGraphData(newData) {
             currentLinks.push(newLink);
         }
     });
+
+    console.log("Current nodes after merge:", currentNodes);
 }
 
 function renderGraph() {
@@ -55,14 +60,23 @@ function renderGraph() {
     canvas.on("dblclick", doubleClicked);
 
     function fetchMoreNodes(nodeId) {
+        console.log("Fetching more nodes for URL:", nodeId);
+
         fetch(`/api/ExpandNodes/build?url=${encodeURIComponent(nodeId)}`)
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
             .then(data => {
+                console.log("Received data:", data);
                 mergeGraphData(data);
                 renderGraph(); // Re-render the graph with new data
             })
             .catch(error => console.error('Error fetching more nodes:', error));
     }
+
 
     // Handle double-click event
     function doubleClicked(event) {
