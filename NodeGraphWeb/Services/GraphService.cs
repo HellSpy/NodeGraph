@@ -8,9 +8,9 @@ namespace NodeGraphWeb.Services
     {
         private readonly DatabaseService _databaseService;
 
-        public GraphService()
+        public GraphService(DatabaseService databaseService)
         {
-            _databaseService = new DatabaseService();
+            _databaseService = databaseService;
         }
 
         public string GetGraphDataFromDatabase()
