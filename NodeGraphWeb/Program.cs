@@ -1,4 +1,6 @@
 using NodeGraphWeb.Services;
+using NodeGraphWeb.Services2;
+using Microsoft.Extensions.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -6,6 +8,11 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorPages();
 builder.Services.AddControllersWithViews(); // For MVC
 builder.Services.AddScoped<GraphService>(); // register GraphService
+builder.Services.AddTransient<GraphServiceBuild>(); // register the build graph service
+
+// Register DatabaseService with IConfiguration
+builder.Services.AddScoped<DatabaseService>(serviceProvider =>
+    new DatabaseService(builder.Configuration));
 
 var app = builder.Build();
 
@@ -24,5 +31,6 @@ app.UseAuthorization();
 
 
 app.MapRazorPages();
+app.MapControllers(); // This is crucial for routing API controllers
 
 app.Run();

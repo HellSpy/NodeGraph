@@ -1,0 +1,108 @@
+﻿@page
+@model NodeGraphWeb.Pages.GraphModel2
+@{
+    ViewData["Title"] = "Build Graph";
+}
+
+<h1>Build your Graph</h1>
+
+<h2>Instructions</h2>
+<p>Add a node or link by inputting the URL. Ensure the url begins with http:// or https://</p>
+<p>Double clicking on nodes will attempt to fetch more nodes if there are any.</p><br />
+
+<form method="post">
+    @Html.AntiForgeryToken() <!-- Anti-forgery token -->
+    <input type="text" name="urlInput" placeholder="Enter a URL" required>
+    <button type="submit">Build Graph</button>
+</form>
+
+<div id="container">
+    <div id="graphContainer2"></div>
+</div>
+<div id="tooltip" style="position: absolute; visibility: hidden; background-color: #fff; border: 1px solid #000; padding: 5px; pointer-events: none;"></div>
+
+
+<button id="resetZoom">Reset Zoom</button>
+<button id="resetGraph">Reset Graph</button>
+
+<style>
+    #container {
+        border: 2px solid black;
+    }
+
+    #graphContainer2 {
+        width: 100%;
+        height: 900px;
+        position: relative;
+    }
+
+    h1 {
+        margin-bottom: 50px;
+    }
+
+    #resetZoom {
+        padding: 5px 10px;
+        font-size: 14px;
+        cursor: pointer;
+        background-color: gainsboro;
+    }
+
+    #resetGraph {
+        padding: 5px 10px;
+        font-size: 14px;
+        cursor: pointer;
+        background-color: gainsboro;
+    }
+
+    .hover-text {
+        pointer-events: none;
+        fill: black;
+        font-size: 24px;
+    }
+
+    #tooltip {
+        z-index: 100;
+        position: absolute;
+    }
+</style>
+
+<script src="https://d3js.org/d3.v6.min.js"></script>
+
+<script>
+    // Assign the serialized graph data to a JavaScript variable
+    var graphData = @Html.Raw(Model.GraphJsonData);
+</script>
+
+<script src="~/js/buildgraph.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var resetButton = document.getElementById('resetGraph');
+        if (resetButton) {
+            resetButton.addEventListener('click', function () {
+                currentNodes = [];
+                currentLinks = [];
+                graphData = { Nodes: currentNodes, Edges: currentLinks };
+                renderGraph();
+
+                var token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+                fetch('/Build?handler=ResetGraph', {
+                    method: 'POST',
+                    headers: {
+                        'RequestVerificationToken': token, // Include anti-forgery token
+                        'Content-Type': 'application/json' // Set Content-Type if necessary
+                    }
+                })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        console.log('Server-side graph reset successful');
+                    })
+                    .catch(error => {
+                        console.error('Failed to reset server-side graph:', error);
+                    });
+            });
+        }
+    });
+</script>
+

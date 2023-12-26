@@ -20,3 +20,8 @@ html {
 body {
   margin-bottom: 60px;
 }
+
+.display-4 {
+    margin-bottom: 40px;
+    margin-top: 20px;
+}
