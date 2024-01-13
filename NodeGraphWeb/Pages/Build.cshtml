@@ -13,6 +13,7 @@
 <form method="post">
     @Html.AntiForgeryToken() <!-- Anti-forgery token -->
     <input type="text" name="urlInput" placeholder="Enter a URL" required>
+    <input type="number" name="depthLimit" placeholder="Recursion Depth" min="1" required>
     <button type="submit">Build Graph</button>
 </form>
 

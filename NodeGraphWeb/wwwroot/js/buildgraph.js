@@ -57,53 +57,6 @@ function renderGraph() {
     const context = canvas.node().getContext("2d");
     let transform = d3.zoomIdentity;
 
-    canvas.on("dblclick", doubleClicked);
-
-    function fetchMoreNodes(nodeId) {
-        console.log("Fetching more nodes for URL:", nodeId);
-
-        fetch(`/api/ExpandNodes/build?url=${encodeURIComponent(nodeId)}`)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                console.log("Received data:", data);
-                mergeGraphData(data);
-                renderGraph(); // Re-render the graph with new data
-            })
-            .catch(error => console.error('Error fetching more nodes:', error));
-    }
-
-
-    // Handle double-click event
-    function doubleClicked(event) {
-        const mouseX = transform.invertX(event.offsetX);
-        const mouseY = transform.invertY(event.offsetY);
-
-        let clickedNode = null;
-        for (let node of currentNodes) {
-            const dx = mouseX - node.x;
-            const dy = mouseY - node.y;
-            if (dx * dx + dy * dy < (node.Size || 5) * (node.Size || 5)) {
-                clickedNode = node;
-                break;
-            }
-        }
-
-        if (clickedNode) {
-            console.log("Double-clicked node data:", clickedNode);
-            if (clickedNode.Id) {
-                console.log("Fetching more nodes for:", clickedNode.Id);
-                fetchMoreNodes(clickedNode.Id);
-            } else {
-                console.error("No ID found for the double-clicked node", clickedNode);
-            }
-        }
-    }
-
     // Create a simulation for positioning nodes with adjusted parameters for faster movement
     const simulation = d3.forceSimulation(nodes)
         .force("link", d3.forceLink(links).id(d => d.Id).distance(() => Math.random() * 100 + 70)) // randomly adjust distance
