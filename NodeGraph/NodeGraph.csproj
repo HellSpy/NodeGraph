@@ -201,7 +201,7 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
-  <ItemGroup>
+	<ItemGroup>
     <EmbeddedResource Include="FormVisualizer.resx">
       <DependentUpon>FormVisualizer.cs</DependentUpon>
     </EmbeddedResource>

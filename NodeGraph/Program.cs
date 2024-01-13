@@ -12,12 +12,15 @@ class Program
     static async Task Main(string[] args)
     {
         // the path to appsettings.json
-        string configPath = @"C:\Users\avili\source\repos\NodeGraph\NodeGraphWeb\appsettings.json";
+        string configPath = @"../../../NodeGraphWeb/appsettings.json";
+
+        // Get the full path to the appsettings.json file
+        string fullPath = Path.GetFullPath(configPath);
 
         // Build the configuration
         var builder = new ConfigurationBuilder()
-            .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
-            .AddJsonFile(configPath, optional: false, reloadOnChange: true);
+            .SetBasePath(Path.GetDirectoryName(fullPath)) // Set base path to the directory of appsettings.json
+            .AddJsonFile(Path.GetFileName(fullPath), optional: false, reloadOnChange: true);
 
         IConfigurationRoot configuration = builder.Build();
 

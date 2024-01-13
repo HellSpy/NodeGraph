@@ -3,6 +3,30 @@
 
 // Write your JavaScript code.
 
+// Fetch and load the graph data from a JSON file
+
+let connectedLinks = new Set();
+let connectedNodes = new Set();
+
+function fetchGraphData() {
+    fetch('/data/graph-data.json')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            graphData = data;
+            console.log(graphData); // debugging
+            renderGraph();
+        })
+        .catch(error => console.error('Error loading JSON:', error));
+}
+
+// Call fetchGraphData as soon as the script runs
+fetchGraphData(); // uncomment this to remove running from a file
+
 console.log(graphData); // debugging
 function renderGraph() {
     // Check if graphData is defined
@@ -29,19 +53,28 @@ function renderGraph() {
 
     const radius = 100; // Define the desired radius for your nodes - this is for the circle in which all the nodes will be in
 
-    // Create a simulation for positioning nodes with adjusted parameters for faster movement
-    const simulation = d3.forceSimulation(nodes)
-        .force("link", d3.forceLink(links).id(d => d.Id).distance(() => Math.random() * 100 + 70)) // randomly adjust distance
-        .force("charge", d3.forceManyBody()
-            .strength(d => -30 * (d.Size || 1)) // Adjust strength based on node size
-        )
-        .force("collide", d3.forceCollide()
-            .radius(d => (d.Size * 1.1)) // dynamic radius based on half of the node's size, plus a buffer of 1
-            .strength(2)) // maximum strength to ensure separation
-        .force("center", d3.forceCenter(width / 2, height / 2))
-        .force("radial", d3.forceRadial(radius, width / 2, height / 2).strength(0.4)) // add the radial force
-        .alphaDecay(0.05)
-        .on("tick", () => { render(); });
+    // Check if nodes already have position data
+    const nodesHavePosition = nodes.every(n => n.hasOwnProperty('x') && n.hasOwnProperty('y'));
+
+    if (!nodesHavePosition) {
+        // If positions are not present, run the simulation
+        // Create a simulation for positioning nodes with adjusted parameters for faster movement
+        const simulation = d3.forceSimulation(nodes)
+            .force("link", d3.forceLink(links).id(d => d.Id).distance(() => Math.random() * 100 + 70)) // randomly adjust distance
+            .force("charge", d3.forceManyBody()
+                .strength(d => -30 * (d.Size || 1)) // Adjust strength based on node size
+            )
+            .force("collide", d3.forceCollide()
+                .radius(d => (d.Size * 1.1)) // dynamic radius based on half of the node's size, plus a buffer of 1
+                .strength(2)) // maximum strength to ensure separation
+            .force("center", d3.forceCenter(width / 2, height / 2))
+            .force("radial", d3.forceRadial(radius, width / 2, height / 2).strength(0.4)) // add the radial force
+            .alphaDecay(0.05)
+            .on("tick", () => { render(); });
+    } else {
+        // If positions are present, draw the graph immediately
+        render();
+    }
 
     // Zoom functionality adapted for canvas
     const zoom = d3.zoom()
@@ -112,10 +145,6 @@ function renderGraph() {
     }
 
     canvas.on("mousemove", mousemoved);
-
-    let connectedLinks = new Set();
-    let connectedNodes = new Set();
-
 
     function mousemoved(event) {
         const mouseX = transform.invertX(event.offsetX);
@@ -303,3 +332,34 @@ function addLegend() {
 }
 
 addLegend();
+
+// download function
+function downloadJson() {
+    // Serializing the entire graphData object, including nodes and edges
+    const data = JSON.stringify(graphData, null, 2);
+
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+
+    // Create a temporary link to trigger the download
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'graph-data.json'; // Changed the file name to reflect its content
+    document.body.appendChild(a);
+    a.click();
+
+    // Clean up
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+
+// Define a function to initialize event listeners
+function initializeDownloadButton() {
+    const downloadButton = document.getElementById('downloadJson');
+    if (downloadButton) {
+        downloadButton.addEventListener('click', downloadJson);
+    } else {
+        console.error('Download button not found');
+    }
+}

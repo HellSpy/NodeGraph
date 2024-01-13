@@ -14,6 +14,9 @@
 
 <button id="resetZoom">Reset Zoom</button>
 
+<button id="downloadJson">Download JSON</button>
+
+
 <style>
     #container {
         border: 2px solid black;
@@ -34,6 +37,7 @@
         font-size: 14px;
         cursor: pointer;
         background-color: gainsboro;
+        margin: 0;
     }
 
     .hover-text {
@@ -46,12 +50,27 @@
         z-index: 100;
         position: absolute;
     }
+
+    #downloadJson {
+        padding: 5px 10px;
+        font-size: 14px;
+        cursor: pointer;
+        background-color: gainsboro;
+        margin: 0;
+    }
 </style>
 
 <script src="https://d3js.org/d3.v6.min.js"></script>
 <script>
-    var graphData = @Html.Raw(Model.GraphJsonData); // inject the JSON data into the page
-    // this utilizes the site.js file
+    // var graphData = @Html.Raw(Model.GraphJsonData); // inject the JSON data into the page
+    // this code fetches data from the Database
+    // TO MAKE THIS WORK AGAIN, go to graph.cshtml.cs and uncomment GraphJsonData in the OnGet function
 </script>
 
 <script src="~/js/nodegraph.js"></script>
+<script>
+    // Ensure this runs after the entire page is rendered
+    document.addEventListener('DOMContentLoaded', function () {
+        initializeDownloadButton();
+    });
+</script>
